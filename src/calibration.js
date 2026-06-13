@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { modelsSoS300, micCalProb, noxo180 } from './data/receivers.js';
 import { antiMicCal } from './data/mic-cal.js';
-import { baseUrl, speedDelay, fetch_mREW, postSafe, postDelete } from './rew-api.js';
+import { REW_HOST, baseUrl, speedDelay, fetch_mREW, postSafe, postDelete } from './rew-api.js';
 import { CenterSpeakerDistance } from './config.js';
 import { updateCheckboxStates } from './ui.js';
 
@@ -199,7 +199,7 @@ async function sortREW(){
     ];
     let newIndex = mCount + 1;
     for (let measurement of sortedMeasurements) {
-      await postSafe(`http://localhost:4735/measurements/${measurement.index}/command`, { command: "Response copy" }, "Completed");
+      await postSafe(`${REW_HOST}/measurements/${measurement.index}/command`, { command: "Response copy" }, "Completed");
       const titleNew = measurement.title + "o";
       await fetch_mREW(newIndex, 'PUT', {title: titleNew});
       newIndex++;

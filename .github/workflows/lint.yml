@@ -33,15 +33,4 @@ jobs:
           fi
 
       - name: Lint src/
-        run: |
-          npx eslint \
-            --no-eslintrc \
-            --env browser \
-            --env es2022 \
-            --parser-options "ecmaVersion:2022,sourceType:module" \
-            --rule "no-undef: error" \
-            --rule "no-unreachable: error" \
-            --rule "no-dupe-keys: error" \
-            --rule "no-duplicate-case: error" \
-            --rule "no-unused-vars: warn" \
-            'src/**/*.js' || true
+        run: npm run lint

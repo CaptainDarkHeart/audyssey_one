@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { fetch_mREW, postNext, postSafe, postDelete, fetchSafe } from './rew-api.js';
+import { REW_HOST, fetch_mREW, postNext, postSafe, postDelete, fetchSafe } from './rew-api.js';
 import { genSub, rmsError, genSpeaker, rmsVolume, calcEP } from './signal.js';
 import { alignCenter, align4impulse, alignMsub } from './alignment.js';
 import { perSpeakerXOSearchRange } from './config.js';
@@ -12,7 +12,7 @@ let isPossible, requiredDelay, isInverted, excessPhase;
 
 async function aceXO() {
   let subMoves = 0, inversion = false, lmDev = Infinity, lmXO, lmDelay = 0, lmInv = false, normDev = Infinity, normXO , normDelay = 0, normInv = false, frontLFE = Infinity, centerAligned = false;
-  await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
+  await postSafe(`${REW_HOST}/eq/house-curve`, state.targetCurvePath, "House curve set");
   await fetchSafe('target-level', 1, state.targetLevel);
   await postNext('Generate target measurement', 1);
   await postNext('Minimum phase version', state.nSpeakers * 3 + 1, {
@@ -170,7 +170,7 @@ async function aceXO() {
     console.warn("Optimization will continue applying maximum possible delay to your sub(s) but the final calibration will not be optimal!");
     subMoves = state.maxPositive / 1000;
   }
-  if (inversion) { await postSafe(`http://localhost:4735/measurements/${state.nSpeakers * 3}/command`, { command: "Invert" }, "Invert completed"); };
+  if (inversion) { await postSafe(`${REW_HOST}/measurements/${state.nSpeakers * 3}/command`, { command: "Invert" }, "Invert completed"); };
   await postNext('Offset t=0', state.nSpeakers * 3, { offset: subMoves, unit: "seconds" });
   if (state.numSub > 1) {
     for (let i = state.nSpeakers; i <= state.nSpeakers + state.numSub - 1; i++) {

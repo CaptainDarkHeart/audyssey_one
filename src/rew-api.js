@@ -1,10 +1,11 @@
 import { state } from './state.js';
 
-export const baseUrl = 'http://localhost:4735/measurements';
+export const REW_HOST = 'http://localhost:4735';
+export const baseUrl = `${REW_HOST}/measurements`;
 export const speedDelay = 255;
 
 async function enableBlock() {
-  await fetch('http://localhost:4735/application/blocking', {
+  await fetch(`${REW_HOST}/application/blocking`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: true
@@ -205,7 +206,7 @@ async function fetchSafe(extUrl, indice, parameters = null) {
   }
 }
 async function postAlign(processName, frequency = null) {
-  const requestUrl = `http://localhost:4735/alignment-tool/command`;
+  const requestUrl = `${REW_HOST}/alignment-tool/command`;
   const body = { command: processName };
   if (frequency != null) {
     body.frequency = frequency;
@@ -248,7 +249,7 @@ async function postAlign(processName, frequency = null) {
       throw new Error('Failed to parse the response data');
     }
     if (data.message && data.message.includes('completed')) {
-      const resultUrl = `http://localhost:4735/alignment-tool/result`;
+      const resultUrl = `${REW_HOST}/alignment-tool/result`;
       const resultResponse = await fetch(resultUrl);
       if (!resultResponse.ok) {
         throw new Error('Failed to fetch result data!');
@@ -271,7 +272,7 @@ async function postAlign(processName, frequency = null) {
 }
 async function fetchAlign(extUrl) {
   try {
-    const requestUrl = `http://localhost:4735/alignment-tool/${extUrl}`;
+    const requestUrl = `${REW_HOST}/alignment-tool/${extUrl}`;
     const response = await fetch(requestUrl, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' }
@@ -285,21 +286,21 @@ async function fetchAlign(extUrl) {
   }
 }
 async function disableBlock() {
-  await fetch('http://localhost:4735/application/blocking', {
+  await fetch(`${REW_HOST}/application/blocking`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: false
   });
 }
 async function disableGraph() {
-  await fetch('http://localhost:4735/application/inhibit-graph-updates', {
+  await fetch(`${REW_HOST}/application/inhibit-graph-updates`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: true
   });
 }
 async function enableGraph() {
-  await fetch('http://localhost:4735/application/inhibit-graph-updates', {
+  await fetch(`${REW_HOST}/application/inhibit-graph-updates`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: false
@@ -307,7 +308,7 @@ async function enableGraph() {
 }
 async function clearCommands() {
   const body = { command: 'Clear command in progress' };
-  await fetch('http://localhost:4735/application/command', {
+  await fetch(`${REW_HOST}/application/command`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)

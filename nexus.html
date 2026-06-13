@@ -17050,10 +17050,11 @@
   ];
 
   // src/rew-api.js
-  var baseUrl = "http://localhost:4735/measurements";
+  var REW_HOST = "http://localhost:4735";
+  var baseUrl = `${REW_HOST}/measurements`;
   var speedDelay = 255;
   async function enableBlock() {
-    await fetch("http://localhost:4735/application/blocking", {
+    await fetch(`${REW_HOST}/application/blocking`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: true
@@ -17260,7 +17261,7 @@
     }
   }
   async function postAlign(processName, frequency = null) {
-    const requestUrl = `http://localhost:4735/alignment-tool/command`;
+    const requestUrl = `${REW_HOST}/alignment-tool/command`;
     const body = { command: processName };
     if (frequency != null) {
       body.frequency = frequency;
@@ -17303,7 +17304,7 @@
         throw new Error("Failed to parse the response data");
       }
       if (data.message && data.message.includes("completed")) {
-        const resultUrl = `http://localhost:4735/alignment-tool/result`;
+        const resultUrl = `${REW_HOST}/alignment-tool/result`;
         const resultResponse = await fetch(resultUrl);
         if (!resultResponse.ok) {
           throw new Error("Failed to fetch result data!");
@@ -17326,7 +17327,7 @@
   }
   async function fetchAlign(extUrl) {
     try {
-      const requestUrl = `http://localhost:4735/alignment-tool/${extUrl}`;
+      const requestUrl = `${REW_HOST}/alignment-tool/${extUrl}`;
       const response = await fetch(requestUrl, {
         method: "GET",
         headers: { "Content-Type": "application/json" }
@@ -17340,21 +17341,21 @@
     }
   }
   async function disableBlock() {
-    await fetch("http://localhost:4735/application/blocking", {
+    await fetch(`${REW_HOST}/application/blocking`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: false
     });
   }
   async function disableGraph() {
-    await fetch("http://localhost:4735/application/inhibit-graph-updates", {
+    await fetch(`${REW_HOST}/application/inhibit-graph-updates`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: true
     });
   }
   async function enableGraph() {
-    await fetch("http://localhost:4735/application/inhibit-graph-updates", {
+    await fetch(`${REW_HOST}/application/inhibit-graph-updates`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: false
@@ -17362,7 +17363,7 @@
   }
   async function clearCommands() {
     const body = { command: "Clear command in progress" };
-    await fetch("http://localhost:4735/application/command", {
+    await fetch(`${REW_HOST}/application/command`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
@@ -17780,8 +17781,8 @@
     for (let j = 0; j < indices.length; j++) {
       const index = indices[j];
       await postNext("Smooth", index, { smoothing: "None" });
-      await postSafe(`http://localhost:4735/measurements/${index}/target-settings`, { shape: "None" }, "Update processed");
-      await postSafe(`http://localhost:4735/measurements/${index}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${index}/target-settings`, { shape: "None" }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${index}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
       const epImpulse = await postNext2("Excess phase version", index, {
         "include cal": true,
         "append lf tail": false,
@@ -17817,8 +17818,8 @@
           }]
         }, "Filters set");
         await new Promise((resolve) => setTimeout(resolve, speedDelay));
-        await postSafe(`http://localhost:4735/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
-        await postSafe(`http://localhost:4735/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+        await postSafe(`${REW_HOST}/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
+        await postSafe(`${REW_HOST}/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
         await new Promise((resolve) => setTimeout(resolve, speedDelay));
         await postNext("Generate predicted measurement", key);
         await new Promise((resolve) => setTimeout(resolve, speedDelay));
@@ -17848,8 +17849,8 @@
           }]
         }, "Filters set");
         await new Promise((resolve) => setTimeout(resolve, speedDelay));
-        await postSafe(`http://localhost:4735/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
-        await postSafe(`http://localhost:4735/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+        await postSafe(`${REW_HOST}/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
+        await postSafe(`${REW_HOST}/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
         await new Promise((resolve) => setTimeout(resolve, speedDelay));
         await postNext("Generate predicted measurement", key);
         await new Promise((resolve) => setTimeout(resolve, speedDelay));
@@ -17927,12 +17928,12 @@
       tempHi = hiDelay;
       hiDelay = 0;
     }
-    await postSafe("http://localhost:4735/alignment-tool/index-a", ind1, "selected as measurement A");
-    await postSafe("http://localhost:4735/alignment-tool/index-b", ind2, "selected as measurement B");
+    await postSafe(`${REW_HOST}/alignment-tool/index-a`, ind1, "selected as measurement A");
+    await postSafe(`${REW_HOST}/alignment-tool/index-b`, ind2, "selected as measurement B");
     await postAlign("Reset all");
-    await postSafe("http://localhost:4735/alignment-tool/mode", "Impulse", "Mode set");
-    await postSafe("http://localhost:4735/alignment-tool/max-negative-delay", -hiDelay, "Maximum negative delay set to");
-    await postSafe("http://localhost:4735/alignment-tool/max-positive-delay", -loDelay, "Maximum positive delay set to");
+    await postSafe(`${REW_HOST}/alignment-tool/mode`, "Impulse", "Mode set");
+    await postSafe(`${REW_HOST}/alignment-tool/max-negative-delay`, -hiDelay, "Maximum negative delay set to");
+    await postSafe(`${REW_HOST}/alignment-tool/max-positive-delay`, -loDelay, "Maximum positive delay set to");
     console.info("Deep searching alignment options...");
     for (checkFreq = 20; checkFreq <= 250; checkFreq++) {
       const postAlignResult = await postAlign("Align IRs", checkFreq);
@@ -17994,12 +17995,12 @@
   }
   async function alignMsub(ind1, ind2, loDelay, hiDelay) {
     let isInverted2 = false, isPossibleI = false, requiredDelayI = NaN, sumIndex = null, samples, checkFreq;
-    await postSafe("http://localhost:4735/alignment-tool/index-a", ind1, "selected as measurement A");
-    await postSafe("http://localhost:4735/alignment-tool/index-b", ind2, "selected as measurement B");
+    await postSafe(`${REW_HOST}/alignment-tool/index-a`, ind1, "selected as measurement A");
+    await postSafe(`${REW_HOST}/alignment-tool/index-b`, ind2, "selected as measurement B");
     await postAlign("Reset all");
-    await postSafe("http://localhost:4735/alignment-tool/mode", "Impulse", "Mode set");
-    await postSafe("http://localhost:4735/alignment-tool/max-negative-delay", loDelay, "Maximum negative delay set to");
-    await postSafe("http://localhost:4735/alignment-tool/max-positive-delay", hiDelay, "Maximum positive delay set to");
+    await postSafe(`${REW_HOST}/alignment-tool/mode`, "Impulse", "Mode set");
+    await postSafe(`${REW_HOST}/alignment-tool/max-negative-delay`, loDelay, "Maximum negative delay set to");
+    await postSafe(`${REW_HOST}/alignment-tool/max-positive-delay`, hiDelay, "Maximum positive delay set to");
     let magSum, maxSum = -Infinity, bestFreq = NaN;
     console.info("Commencing in-depth frequency and SPL analysis...");
     for (checkFreq = 20; checkFreq <= 250; checkFreq++) {
@@ -18077,7 +18078,7 @@
   var excessPhase;
   async function aceXO() {
     let subMoves = 0, inversion = false, lmDev = Infinity, lmXO, lmDelay = 0, lmInv = false, normDev = Infinity, normXO, normDelay = 0, normInv = false, frontLFE = Infinity, centerAligned = false;
-    await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
+    await postSafe(`${REW_HOST}/eq/house-curve`, state.targetCurvePath, "House curve set");
     await fetchSafe("target-level", 1, state.targetLevel);
     await postNext("Generate target measurement", 1);
     await postNext("Minimum phase version", state.nSpeakers * 3 + 1, {
@@ -18291,7 +18292,7 @@
       subMoves = state.maxPositive / 1e3;
     }
     if (inversion) {
-      await postSafe(`http://localhost:4735/measurements/${state.nSpeakers * 3}/command`, { command: "Invert" }, "Invert completed");
+      await postSafe(`${REW_HOST}/measurements/${state.nSpeakers * 3}/command`, { command: "Invert" }, "Invert completed");
     }
     ;
     await postNext("Offset t=0", state.nSpeakers * 3, { offset: subMoves, unit: "seconds" });
@@ -21284,11 +21285,11 @@
     }
     let baseMessage = "Resetting smoothing, IR windows, EQ target shape and room curve settings for all measurements...";
     for (let q = 1; q <= mCount; q++) {
-      await postSafe(`http://localhost:4735/measurements/${q}/ir-windows`, { leftWindowType: "Rectangular", rightWindowType: "Rectangular" }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${q}/ir-windows`, { leftWindowType: "Rectangular", rightWindowType: "Rectangular" }, "Update processed");
       await new Promise((resolve) => setTimeout(resolve, speedDelay / 10));
-      await postSafe(`http://localhost:4735/measurements/${q}/target-settings`, { shape: "None" }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${q}/target-settings`, { shape: "None" }, "Update processed");
       await new Promise((resolve) => setTimeout(resolve, speedDelay / 10));
-      await postSafe(`http://localhost:4735/measurements/${q}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${q}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
       await new Promise((resolve) => setTimeout(resolve, speedDelay / 10));
       await postNext("Smooth", q, { smoothing: "None" });
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
@@ -21296,8 +21297,8 @@
     }
     ;
     await console.infoUpdate("Resetting default equalizer to 'Generic/Generic'...");
-    await postSafe(`http://localhost:4735/eq/default-equaliser`, { manufacturer: "Generic", model: "Generic" }, "Default equaliser changed");
-    const tcResponse = await fetch("http://localhost:4735/eq/house-curve");
+    await postSafe(`${REW_HOST}/eq/default-equaliser`, { manufacturer: "Generic", model: "Generic" }, "Default equaliser changed");
+    const tcResponse = await fetch(`${REW_HOST}/eq/house-curve`);
     if (tcResponse.ok) {
       const target = await tcResponse.json();
       state.targetCurvePath = target.message;
@@ -21312,7 +21313,7 @@
       throw new Error(`Failed to retrieve target curve from REW API (HTTP ${tcResponse.status})`);
     }
     ;
-    const rewVersion = await fetch(`http://localhost:4735/version`);
+    const rewVersion = await fetch(`${REW_HOST}/version`);
     if (rewVersion.ok) {
       const rew = await rewVersion.json();
       console.infoUpdate(`Integrity checks completed successfully. Running Room EQ Wizard version ${rew.message}`);
@@ -21460,8 +21461,8 @@
   async function generateFilters() {
     console.info(`Generating proprietary room correction filters based on Hilbert transforms of the impulse responses...`);
     for (let i2 = 1; i2 <= state.nSpeakers; i2++) {
-      await postSafe(`http://localhost:4735/measurements/${i2}/target-settings`, { shape: "None" }, "Update processed");
-      await postSafe(`http://localhost:4735/measurements/${i2}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${i2}/target-settings`, { shape: "None" }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${i2}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
       await postNext("Minimum phase version", i2, {
         "include cal": true,
         "append lf tail": false,
@@ -21471,8 +21472,8 @@
       });
     }
     ;
-    await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
-    await postSafe(`http://localhost:4735/eq/match-target-settings`, {
+    await postSafe(`${REW_HOST}/eq/house-curve`, state.targetCurvePath, "House curve set");
+    await postSafe(`${REW_HOST}/eq/match-target-settings`, {
       startFrequency: 10,
       endFrequency: endFrequency2,
       individualMaxBoostdB: maxBoost,
@@ -21537,7 +21538,7 @@
   async function witchCraft() {
     while (true) {
       try {
-        const response = await fetch(`http://localhost:4735/eq/house-curve`, {
+        const response = await fetch(`${REW_HOST}/eq/house-curve`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" }
         });
@@ -21595,7 +21596,7 @@
     ;
   }
   async function drawResults() {
-    await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
+    await postSafe(`${REW_HOST}/eq/house-curve`, state.targetCurvePath, "House curve set");
     console.info("Optimizing EQ filters and generating expected final outputs in REW for each channel...");
     let k = 0;
     for (let i2 = 1; i2 < state.nSpeakers; i2++) {
@@ -21604,7 +21605,7 @@
         await genSpeaker(i2, xo2);
         await genSub(xo2);
       } else if (xo2 === "L") {
-        await postSafe(`http://localhost:4735/measurements/${i2}/command`, { command: "Response copy" }, "Completed");
+        await postSafe(`${REW_HOST}/measurements/${i2}/command`, { command: "Response copy" }, "Completed");
         if (state.lfePlusMain) {
           await genSub(state.bassExtractionLPF);
         } else {
@@ -21628,7 +21629,7 @@
         "frequency warping": false,
         "replicate data": true
       });
-      await postSafe(`http://localhost:4735/eq/match-target-settings`, {
+      await postSafe(`${REW_HOST}/eq/match-target-settings`, {
         startFrequency: 10,
         endFrequency: endFrequency2,
         individualMaxBoostdB: maxBoost,
@@ -21667,7 +21668,7 @@
     ;
     const mData = await fetch_mREW(state.nSpeakers + 1);
     const title = mData.title;
-    await postSafe(`http://localhost:4735/measurements/${state.nSpeakers + 1}/command`, { command: "Response copy" }, "Completed");
+    await postSafe(`${REW_HOST}/measurements/${state.nSpeakers + 1}/command`, { command: "Response copy" }, "Completed");
     await fetch_mREW(state.nSpeakers * 3 + 2, "PUT", { title });
     await postDelete(state.nSpeakers + 1);
     let targetName = state.targetCurvePath.split("\\").pop().split(".").slice(0, -1).join(".");
@@ -22045,7 +22046,7 @@
       ];
       let newIndex = mCount + 1;
       for (let measurement of sortedMeasurements) {
-        await postSafe(`http://localhost:4735/measurements/${measurement.index}/command`, { command: "Response copy" }, "Completed");
+        await postSafe(`${REW_HOST}/measurements/${measurement.index}/command`, { command: "Response copy" }, "Completed");
         const titleNew = measurement.title + "o";
         await fetch_mREW(newIndex, "PUT", { title: titleNew });
         newIndex++;

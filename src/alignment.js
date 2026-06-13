@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
+import { REW_HOST, baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
 import { rmsError, genSpeaker, genSub } from './signal.js';
 import { perSpeakerXOSearchRange } from './config.js';
 
@@ -86,8 +86,8 @@ async function epAlign(indices, final) {
   for (let j = 0; j < indices.length; j++) {
     const index = indices[j];
     await postNext('Smooth', index, { smoothing: "None" });
-    await postSafe(`http://localhost:4735/measurements/${index}/target-settings`, { shape: "None" }, "Update processed");
-    await postSafe(`http://localhost:4735/measurements/${index}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${index}/target-settings`, { shape: "None" }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${index}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
     const epImpulse = await postNext2('Excess phase version', index, {
       "include cal": true,
       "append lf tail": false,
@@ -123,8 +123,8 @@ async function epAlign(indices, final) {
         }]
       }, "Filters set");
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
-      await postSafe(`http://localhost:4735/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
-      await postSafe(`http://localhost:4735/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
       await postNext('Generate predicted measurement', key);
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
@@ -154,8 +154,8 @@ async function epAlign(indices, final) {
         }]
       }, "Filters set");
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
-      await postSafe(`http://localhost:4735/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
-      await postSafe(`http://localhost:4735/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
+      await postSafe(`${REW_HOST}/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
       await postNext('Generate predicted measurement', key);
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
@@ -219,12 +219,12 @@ async function align4impulse(ind1, ind2) {
   if (hiDelay > maxDelay) {hiDelay = maxDelay;}
   if (loDelay > 0) { tempLo = loDelay; loDelay = 0; }
   if (hiDelay < 0) { tempHi = hiDelay; hiDelay = 0; }
-  await postSafe("http://localhost:4735/alignment-tool/index-a", ind1, "selected as measurement A");
-  await postSafe("http://localhost:4735/alignment-tool/index-b", ind2, "selected as measurement B");
+  await postSafe(`${REW_HOST}/alignment-tool/index-a`, ind1, "selected as measurement A");
+  await postSafe(`${REW_HOST}/alignment-tool/index-b`, ind2, "selected as measurement B");
   await postAlign('Reset all');
-  await postSafe("http://localhost:4735/alignment-tool/mode", "Impulse", "Mode set");
-  await postSafe("http://localhost:4735/alignment-tool/max-negative-delay", -hiDelay, "Maximum negative delay set to");
-  await postSafe("http://localhost:4735/alignment-tool/max-positive-delay", -loDelay, "Maximum positive delay set to");
+  await postSafe(`${REW_HOST}/alignment-tool/mode`, "Impulse", "Mode set");
+  await postSafe(`${REW_HOST}/alignment-tool/max-negative-delay`, -hiDelay, "Maximum negative delay set to");
+  await postSafe(`${REW_HOST}/alignment-tool/max-positive-delay`, -loDelay, "Maximum positive delay set to");
   console.info("Deep searching alignment options...")
   for (checkFreq = 20; checkFreq <= 250; checkFreq++) {
     const postAlignResult = await postAlign('Align IRs', checkFreq);
@@ -282,12 +282,12 @@ async function align4impulse(ind1, ind2) {
 }
 async function alignMsub(ind1, ind2, loDelay, hiDelay) {
   let isInverted = false, isPossibleI = false, requiredDelayI = NaN, sumIndex = null, samples, checkFreq;
-  await postSafe("http://localhost:4735/alignment-tool/index-a", ind1, "selected as measurement A");
-  await postSafe("http://localhost:4735/alignment-tool/index-b", ind2, "selected as measurement B");
+  await postSafe(`${REW_HOST}/alignment-tool/index-a`, ind1, "selected as measurement A");
+  await postSafe(`${REW_HOST}/alignment-tool/index-b`, ind2, "selected as measurement B");
   await postAlign('Reset all');
-  await postSafe("http://localhost:4735/alignment-tool/mode", "Impulse", "Mode set");
-  await postSafe("http://localhost:4735/alignment-tool/max-negative-delay", loDelay, "Maximum negative delay set to");
-  await postSafe("http://localhost:4735/alignment-tool/max-positive-delay", hiDelay, "Maximum positive delay set to");
+  await postSafe(`${REW_HOST}/alignment-tool/mode`, "Impulse", "Mode set");
+  await postSafe(`${REW_HOST}/alignment-tool/max-negative-delay`, loDelay, "Maximum negative delay set to");
+  await postSafe(`${REW_HOST}/alignment-tool/max-positive-delay`, hiDelay, "Maximum positive delay set to");
   let magSum, maxSum = -Infinity, bestFreq = NaN;
   console.info("Commencing in-depth frequency and SPL analysis...")
   for (checkFreq = 20; checkFreq <= 250; checkFreq++) {

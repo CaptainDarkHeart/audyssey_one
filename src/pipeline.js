@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, enableBlock, disableBlock, enableGraph, disableGraph, clearCommands } from './rew-api.js';
+import { REW_HOST, baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, enableBlock, disableBlock, enableGraph, disableGraph, clearCommands } from './rew-api.js';
 import { rmsVolume, genSub, genSpeaker, subIRP } from './signal.js';
 import { epAlign } from './alignment.js';
 import { aceXO, findXO, tectonic } from './crossover.js';
@@ -111,11 +111,11 @@ async function bootUp() {
   }
   let baseMessage = "Resetting smoothing, IR windows, EQ target shape and room curve settings for all measurements..."
   for (let q = 1; q <= mCount; q++) {
-    await postSafe(`http://localhost:4735/measurements/${q}/ir-windows`, { leftWindowType: "Rectangular", rightWindowType: "Rectangular" }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${q}/ir-windows`, { leftWindowType: "Rectangular", rightWindowType: "Rectangular" }, "Update processed");
     await new Promise((resolve) => setTimeout(resolve, speedDelay / 10));
-    await postSafe(`http://localhost:4735/measurements/${q}/target-settings`, { shape: "None" }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${q}/target-settings`, { shape: "None" }, "Update processed");
     await new Promise((resolve) => setTimeout(resolve, speedDelay / 10));
-    await postSafe(`http://localhost:4735/measurements/${q}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${q}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
     await new Promise((resolve) => setTimeout(resolve, speedDelay / 10));
     await postNext('Smooth', q, { smoothing: "None" });
     await new Promise((resolve) => setTimeout(resolve, speedDelay));
@@ -123,9 +123,9 @@ async function bootUp() {
   };
   
   await console.infoUpdate("Resetting default equalizer to 'Generic/Generic'...");
-  await postSafe(`http://localhost:4735/eq/default-equaliser`, {manufacturer: "Generic", model: "Generic"}, "Default equaliser changed");
+  await postSafe(`${REW_HOST}/eq/default-equaliser`, {manufacturer: "Generic", model: "Generic"}, "Default equaliser changed");
   
-  const tcResponse = await fetch('http://localhost:4735/eq/house-curve');
+  const tcResponse = await fetch(`${REW_HOST}/eq/house-curve`);
   if (tcResponse.ok) {
     const target = await tcResponse.json();
     state.targetCurvePath = target.message;
@@ -139,7 +139,7 @@ async function bootUp() {
     console.warn(`Failed to fetch target curve, please make sure to have started REW API server! HTTP status code: ${tcResponse.status}.`);
     throw new Error(`Failed to retrieve target curve from REW API (HTTP ${tcResponse.status})`);
   };
-  const rewVersion = await fetch(`http://localhost:4735/version`);
+  const rewVersion = await fetch(`${REW_HOST}/version`);
   if (rewVersion.ok) {
     const rew = await rewVersion.json();
     console.infoUpdate(`Integrity checks completed successfully. Running Room EQ Wizard version ${rew.message}`);
@@ -280,8 +280,8 @@ async function optimizeLevels() {
 async function generateFilters() {
   console.info(`Generating proprietary room correction filters based on Hilbert transforms of the impulse responses...`);
   for (let i = 1; i <= state.nSpeakers; i++) {
-    await postSafe(`http://localhost:4735/measurements/${i}/target-settings`, { shape: "None" }, "Update processed");
-    await postSafe(`http://localhost:4735/measurements/${i}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${i}/target-settings`, { shape: "None" }, "Update processed");
+    await postSafe(`${REW_HOST}/measurements/${i}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
     await postNext('Minimum phase version', i, {
       "include cal": true,
       "append lf tail": false,
@@ -290,8 +290,8 @@ async function generateFilters() {
       "replicate data": true
     });
   };
-  await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
-  await postSafe(`http://localhost:4735/eq/match-target-settings`, {
+  await postSafe(`${REW_HOST}/eq/house-curve`, state.targetCurvePath, "House curve set");
+  await postSafe(`${REW_HOST}/eq/match-target-settings`, {
     startFrequency: 10,
     endFrequency: endFrequency,
     individualMaxBoostdB: maxBoost,
@@ -351,7 +351,7 @@ async function generateFilters() {
 async function witchCraft() {   
   while (true) {
     try {
-      const response = await fetch(`http://localhost:4735/eq/house-curve`, {
+      const response = await fetch(`${REW_HOST}/eq/house-curve`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -402,7 +402,7 @@ async function witchCraft() {
   };
 }
 async function drawResults() {
-  await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
+  await postSafe(`${REW_HOST}/eq/house-curve`, state.targetCurvePath, "House curve set");
   console.info("Optimizing EQ filters and generating expected final outputs in REW for each channel...");
   let k = 0;
   for (let i = 1; i < state.nSpeakers; i++) {
@@ -412,7 +412,7 @@ async function drawResults() {
       await genSub(xo);
     }
     else if (xo === "L") {
-      await postSafe(`http://localhost:4735/measurements/${i}/command`, {command: "Response copy"}, "Completed");
+      await postSafe(`${REW_HOST}/measurements/${i}/command`, {command: "Response copy"}, "Completed");
       if (state.lfePlusMain) {
         await genSub(state.bassExtractionLPF);
       }
@@ -436,7 +436,7 @@ async function drawResults() {
       "frequency warping": false,
       "replicate data": true
     });
-    await postSafe(`http://localhost:4735/eq/match-target-settings`, {
+    await postSafe(`${REW_HOST}/eq/match-target-settings`, {
       startFrequency: 10,
       endFrequency: endFrequency,
       individualMaxBoostdB: maxBoost,
@@ -473,7 +473,7 @@ async function drawResults() {
   };
   const mData = await fetch_mREW(state.nSpeakers + 1);
   const title = mData.title;
-  await postSafe(`http://localhost:4735/measurements/${state.nSpeakers + 1}/command`, {command: "Response copy"}, "Completed");
+  await postSafe(`${REW_HOST}/measurements/${state.nSpeakers + 1}/command`, {command: "Response copy"}, "Completed");
   await fetch_mREW(state.nSpeakers * 3 + 2, 'PUT', {title: title});
   await postDelete(state.nSpeakers + 1);
   let targetName = state.targetCurvePath.split('\\').pop().split('.').slice(0, -1).join('.');
