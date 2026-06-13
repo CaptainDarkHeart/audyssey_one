@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify build output changed
+        run: |
+          git diff --stat nexus.html
+          if git diff --quiet nexus.html; then
+            echo "nexus.html is up to date with src/"
+          else
+            echo "WARNING: nexus.html is stale — run 'npm run build' and commit the result"
+            exit 1
+          fi
+
+      - name: Lint src/
+        run: |
+          npx eslint \
+            --no-eslintrc \
+            --env browser \
+            --env es2022 \
+            --parser-options "ecmaVersion:2022,sourceType:module" \
+            --rule "no-undef: error" \
+            --rule "no-unreachable: error" \
+            --rule "no-dupe-keys: error" \
+            --rule "no-duplicate-case: error" \
+            --rule "no-unused-vars: warn" \
+            'src/**/*.js' || true

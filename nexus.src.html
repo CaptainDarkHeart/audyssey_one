@@ -1,0 +1,457 @@
+<!-- 
+  Copyright (c) [September 2024] [OCA - https://www.youtube.com/@OCAudiophile]
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, and to permit persons to
+  whom the Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are not permitted for commercial purposes without the explicit
+  permission of the author.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A1 Evo Nexus - OCA 2024</title>
+  <style>
+    body {
+      font-family: Open Sans, sans-serif;
+      background-color: #f2f2f2;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 5px 5px;
+    }
+    h2 {
+      margin-top: 1px; /* Adjust this value as needed */
+    }
+    h2 {
+      text-align: center;
+      font-size: 30px;
+      margin-bottom: 1px;
+      color: #357ebd;
+      background-color: transparent;
+      padding: 1px 1px;
+      border-radius: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3), -2px -2px 5px rgba(255, 255, 255, 0.5);
+    }
+    h3 {
+      font-size: 18px;
+      color: #357ebd;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3), -2px -2px 5px rgba(255, 255, 255, 0.5);
+    }
+    strong {
+      font-style: italic;
+      color: #FFA500;
+    }
+    ol {
+      padding-left: 20px;
+    }
+    .button-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    button {
+      padding: 5px 20px;
+      font-style: italic;
+      font-size: 15px;
+      border-radius: 15px;
+      border: none;
+      color: #ffffff;
+      background-color: #FFA500;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      width: 300px;
+    }
+    button:hover {
+      background-color: #357ebd;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #pauseButton {
+        position: relative;
+        left: 20px;
+        width: auto;
+        padding: 8px 15px;
+        font-size: 13px;
+    }
+    #fileInput {
+      display: none;
+    }
+    h2.log-heading {
+      font-family: Open Sans, sans-serif;
+      font-size: 12px;
+      font-style: italic;
+      text-indent: 1px;
+      margin-bottom: 0px;
+      width: 80px;
+      background-color: #357ebd;
+      color: #ffffff;
+      border-radius: 5px;
+      width: auto; /* Changed from 98px to auto */
+      display: inline-block;
+    }
+    ol, ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    ol li, ul li {
+      position: relative;
+      padding-left: 1.5em;
+      margin-bottom: 0.5em;
+    }
+    ol li::before, ul li::before {
+      content: "";
+      display: inline-block;
+      width: 0.6em;
+      height: 0.6em;
+      background-color: #357ebd;
+      border-radius: 50%;
+      margin-right: 0.5em;
+      position: absolute;
+      left: 0;
+      top: 0.25em;
+    }
+    .logo {
+      position: absolute;
+      bottom: 0px;
+      right: 14px;
+      font-size: 15px;
+      font-weight: bold;
+      font-style: italic;
+      color: #357ebd;
+      text-shadow: 1px 1px #333333;
+    }
+    .tm {
+      position: absolute;
+      bottom: 0px;
+      left: 5px;
+      font-size: 8px;
+      font-weight: normal;
+      font-style: italic;
+      color: #357ebd;
+      text-shadow: 1px 1px #333333;
+    }
+    a {color: #357ebd;}
+    a:hover {
+      color: #004080;
+      text-decoration: underline;
+    }
+    .version-number {
+      float: right;
+      font-style: italic;
+      font-size: 12px;
+      margin-top: 25px;
+    }
+    .small-bullet {font-size: 12px;}
+    
+    .customization-options {
+      margin-top: 10px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      font-size: 0.8em;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.3s ease;
+    }
+    .customization-options input[type="number"] {
+      margin-right: 10px;
+    }
+    .customization-options label {
+      margin-right: 10px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+    }
+    .customization-options label input[type="checkbox"] {
+      margin-right: 5px;
+    }
+    .explanation {
+      margin-left: 10px;
+      font-size: 0.95em;
+      color: #f0f0f5;
+    }
+    .customization-options.new-style {
+      display: block;
+      flex-direction: initial;
+      transition: initial;
+    }
+    .customization-options.new-style label {
+      margin-bottom: initial;
+      display: initial;
+      align-items: initial;
+    }
+    .customization-options.new-style label input[type="checkbox"] {
+      margin-right: initial;
+    }
+    .customization-options.new-style .explanation {
+      display: none;
+    }
+    .smaller-font {
+      font-size: 14px;
+    }
+   .notice {
+     font-size: 0.7em;
+     color: #357ebd;
+     text-align: right;
+     margin-top: 3px;
+     font-style: italic;
+   }
+   .customization-options select {
+     font-size: 0.9em;
+     padding: 1px 1px;
+     width: 50px;
+     min-width: 60px;
+   }
+   body {
+     font-family: 'Poppins', sans-serif;
+     background-color: #1c1c2d; /* Deep navy background */
+     color: #f0f0f5; /* Light gray text */
+   }
+   h2, h3 {
+     color: #00e6e6; /* Neon blue for headings */
+     text-shadow: 0 0 15px #00ffff, 0 0 20px #00e6e6; /* Glow effect */
+   }
+   button {
+     background-image: linear-gradient(45deg, #ff007f, #8a2be2); /* Gradient button */
+     color: #ffffff;
+     transition: 0.4s ease;
+     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+   }
+   button:hover {
+     transform: scale(1.1);
+     box-shadow: 0 10px 25px rgba(0, 255, 255, 0.6); /* Neon hover glow */
+   }
+   .container {
+     max-width: 1080px;
+     padding: 10px 20px;
+     background-color: #2a2a40; /* Slightly lighter background for containers */
+     border-radius: 12px;
+     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+   }
+   h2 {
+     font-size: 36px;
+     padding: 5px 20px;
+   }
+   .customization-options label {
+     color: #00e6e6;
+   }
+   input[type="checkbox"] {
+     accent-color: #00ff7f;
+   }
+   a {
+     color: #00ffff;
+     transition: color 0.3s ease;
+   }
+   a:hover {
+     color: #ff007f;
+   }
+   #button1 {
+     margin-right: 20px;
+   }
+   #saveButton {
+     margin-right: 20px;
+   }
+   #saveDEQButton {
+     margin-right: 20px;
+   }
+   #logContainer {
+     background-color: #121228 !important;
+     color: #f5f5f5 !important; /* Default text color for normal log messages */
+     border-radius: 5px;
+     box-shadow: 0 0 10px rgba(0, 255, 255, 0.6) !important; /* Neon glow effect */
+     padding: 5px;
+     max-height: 56px;
+     overflow-y: auto;
+     font-size: 0.9em !important;
+     line-height: 1.2em !important;
+     white-space: pre-wrap !important;
+     text-indent: -5em;
+     padding-left: 5em;
+   }
+   #logContainer .log {
+     color: #00d6ff !important;
+   }
+   #logContainer .warning {
+     color: #ff9900 !important;
+     font-weight: bold !important;
+   }
+   #logContainer .error {
+     color: #ff7f7f !important;
+     font-weight: normal !important;
+   }
+   #logContainer .info {
+     color: #f0f5ff !important;
+   }
+   select {
+      background-color: #2a2a40; /* Dark background for the drop-down */
+      color: #f5f5f5; /* Neon blue text */
+      border: 2px solid #00e6e6; /* Neon blue border */
+      border-radius: 5px;
+      padding: 0px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 11px;
+      transition: 0.3s ease;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); /* Soft glow around the drop-down */
+    }
+    select:hover, select:focus {
+      background-color: #1c1c2d; /* Slightly darker when hovering or focused */
+      color: #ffffff; /* Light text on hover/focus */
+      border-color: #ff007f; /* Neon pink border when active */
+      outline: none;
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.7); /* Stronger glow on hover/focus */
+    }
+    option {
+      background-color: #2a2a40; /* Dark background for each option */
+      color: #f0f0f5; /* Light gray text for options */
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>A1 Evo <strong>1-click</strong> Optimization tool for home cinema systems with Audyssey®<span class="version-number">Nexus 1.5</span></h2>
+  <h3>Step-by-Step Instructions:</h3>
+  <ol>
+    <li class="smaller-font">You will need to have Room EQ Wizard (v5.40 Beta) installed on your computer
+      <ul style="margin-top: 0.5em;">
+        <li class="small-bullet">You can download the latest REW Beta version here: <a href="https://www.avnirvana.com/threads/rew-api-beta-releases.12981/" target="_blank">here</a></li>
+      </ul>
+    </li>
+    <li class="smaller-font">For advanced tips and a deeper dive into immersive audio, check out the 'Obsessive Compulsive Audiophile' YouTube channel: <a href="https://www.youtube.com/channel/UCLePp5EV2RR5_Xo7rZnnpnQ?sub_confirmation=1" target="_blank">here</a></li>
+    <li class="smaller-font">Click 'Upload sample calibration' below to browse to an Audyssey calibration file (.ady) that has the same speaker configuration as your current set up</li>
+  </ol>
+  <input type="file" id="fileInput" accept=".ady">
+  <div class="button-container">
+    <button id="button1">Upload sample calibration</button>
+    <button id="saveDEQButton" disabled>Create REW measurement mode file (.ady) w/Dynamic EQ ON</button>
+    <button id="saveButton" disabled>Create REW measurement mode file (.ady) w/Dynamic EQ OFF</button>
+  </div>
+  <ol start="5">
+    <li class="smaller-font">Haven't measured your speakers with REW yet? Click one of the buttons above to create a 'REW measurement mode' ady file and transfer it to your AVR</li>
+    <li class="smaller-font">The calibration file will reset certain settings on your AV receiver and configure it for correctly measuring your system with REW</li>
+    <li class="smaller-font">You'll need a microphone with its custom calibration file and an HDMI cable from your computer to your receiver</li>
+    <li class="smaller-font">Next, measure all your speakers and subwoofer(s) by using the included Dolby Atmos REW sweeps. You can optionally do so with Dynamic EQ enabled</li>
+    <li class="smaller-font">REW has capacity for storing up to 500 different measurements at as many different mic positions as you like</li>
+    <li class="smaller-font">Ensure your measurements in REW are named correctly and there's only one measurement for each speaker/subwoofer in your system at the end.</li>
+    <li class="smaller-font">Check this dropdown list for a complete list of allowed speaker/subwoofer names in alphabetical order:
+        <select>
+            <option>BDL: Back Dolby Left</option>
+            <option>BDR: Back Dolby Right</option>
+            <option>C: Center</option>
+            <option>CH: Center Height (Auro-3D)</option>
+            <option>FDL: Front Dolby Left</option>
+            <option>FDR: Front Dolby Right</option>
+            <option>FHL: Front Height Left</option>
+            <option>FHR: Front Height Right</option>
+            <option>FL: Front Left</option>
+            <option>FR: Front Right</option>
+            <option>FWL: Front Wide Left</option>
+            <option>FWR: Front Wide Right</option>
+            <option>RHL: Rear Height Left</option>
+            <option>RHR: Rear Height Right</option>
+            <option>SB: Surround Back (single)</option>
+            <option>SBL: Surround Back Left</option>
+            <option>SBR: Surround Back Right</option>
+            <option>SDL: Surround Dolby Left</option>
+            <option>SDR: Surround Dolby Right</option>
+            <option>SHL: Surround Height Left</option>
+            <option>SHR: Surround Height Right</option>
+            <option>SLA: Surround Left</option>
+            <option>SRA: Surround Right</option>
+            <option>SW1: Subwoofer 1</option>
+            <option>SW2: Subwoofer 2</option>
+            <option>SW3: Subwoofer 3</option>
+            <option>SW4: Subwoofer 4</option>
+            <option>TFL: Top Front Left</option>
+            <option>TFR: Top Front Right</option>
+            <option>TML: Top Middle Left</option>
+            <option>TMR: Top Middle Right</option>
+            <option>TRL: Top Rear Left</option>
+            <option>TRR: Top Rear Right</option>
+            <option>TS: Top Surround (Auro-3D)</option>
+        </select>
+    </li>
+    <li class="smaller-font">Save your measurements and upload REW one of the included target curves of your choice before running the optimization</li>
+    <li class="smaller-font"><b>In REW, go to Preferences > API > Start server</b></li>
+    <li class="smaller-font">For a smooth optimization process: Keep REW on the 'SPL & Phase' tab and close any open child windows</li>
+    <li class="smaller-font">Running optimization multiple times? In REW, 'Save all', 'Remove all' and 'Open' saved measurements before each run</li>
+    <li class="smaller-font">When all is set, click the 'Optimize calibration' button below and sit back and relax. Your home cinema will be 'transformed' within minutes!</li>
+  </ol>
+<div class="button-container">
+  <button id="startButton" disabled>Optimize calibration</button>
+  <button id="pauseButton"disabled >Pause</button>
+  <h1 class="logo">OCA 2024</h1>
+  <h1 class="tm">Audyssey® is a registered trademark of Audyssey Laboratories, Inc.<br>This project is not affiliated with or endorsed by Audyssey Laboratories, Inc.</h1>
+</div>
+<div class="customization-options">
+  <small>    
+    <label>
+      <input type="checkbox" id="forceSmall">
+      Force small front speakers
+      <span class="explanation">If selected, front speakers will NOT be set to 'Large / Full range.'</span>
+    </label>
+    <label>
+      <input type="checkbox" id="forceWeak">
+      Force limited power receiver
+      <span class="explanation">Select this option in systems with less powerful receivers and/or identical speakers, bed channels will be crossed over at 80Hz and Atmos channels at 120Hz.</span>
+    </label>
+    <label>
+      <input type="checkbox" id="forceCentre">
+      Align SW to center speaker
+      <span class="explanation">Subwoofer(s) will be time aligned to the 'Centre' speaker, front speakers will be set to 'Large', 'Subwoofer Mode' will need to be set to 'LFE' in the receiver.</span>
+    </label>
+    <label>
+      <input type="checkbox" id="forceLarge">
+      Force large front speakers
+      <span class="explanation">When selected, front speakers will NOT be set to 'Small'.</span>
+    </label>
+    <label>
+      <input type="checkbox" id="noInversion">
+      Avoid subwoofer polarity inversion
+      <span class="explanation">Avoids SW polarity inversion checks in optimizations. Select this option if your sub(s) don't have a polarity/phase inversion flip switch.</span>
+    </label>
+    <input type="checkbox" id="dummy" checked disabled class="disabled-checkbox">
+      <span style="color: #00e6e6;">SW LPF frequency search range</span>
+      <select id="subwooferLPF">
+        <option value="auto" selected>Auto</option>
+        <option value="cap">Cap</option>
+        <option value="uncap">Uncap</option>
+      </select>
+      <span class="explanation">Limits subwoofer lowpass filter (bass extraction LPF) evaluation frequencies for even number of sub(s) on "Auto" to avoid bass localization.</span>
+      </label>
+  </small>
+</div>
+<div class="notice">*For most setups, Evo's default settings will provide optimal performance.</div>
+<h2 class="log-heading">Progress log</h2>
+<pre id="logContainer"></pre>
+</div>
+<!-- BUILD:SCRIPT -->
+<!-- /BUILD:SCRIPT -->
+</body>
+</html>
