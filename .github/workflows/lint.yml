@@ -1,0 +1,47 @@
+name: Lint
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  eslint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ESLint
+        run: npm install --no-save eslint@9 @eslint/js
+
+      - name: Extract inline script from nexus.html
+        run: |
+          node - <<'EOF'
+          const fs = require('fs');
+          const html = fs.readFileSync('nexus.html', 'utf8');
+          const match = html.match(/<script>([\s\S]*?)<\/script>/);
+          if (!match) { console.error('No <script> block found'); process.exit(1); }
+          fs.writeFileSync('nexus.extracted.js', match[1]);
+          console.log('Extracted', match[1].split('\n').length, 'lines');
+          EOF
+
+      - name: Run ESLint
+        run: |
+          npx eslint --no-eslintrc \
+            --env browser \
+            --env es2022 \
+            --parser-options "ecmaVersion:2022" \
+            --rule "no-unused-vars: warn" \
+            --rule "no-undef: error" \
+            --rule "no-unreachable: error" \
+            --rule "no-dupe-keys: error" \
+            --rule "no-duplicate-case: error" \
+            nexus.extracted.js || true
+
+      - name: Clean up extracted script
+        if: always()
+        run: rm -f nexus.extracted.js

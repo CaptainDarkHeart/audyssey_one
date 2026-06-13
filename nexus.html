@@ -452,11 +452,12 @@
 <pre id="logContainer"></pre>
 </div>
 <script>
+    'use strict';
 
     const modelsSoS300 = ["-S720W", "-S920W", "X1300W", "X2300W", "X3300W", "NR1607", "SR5011", "SR6011", "C-A110", "X3700H", "X4700H", "X6500H", "X6700H",
       "X8500H", "R-A110", "-S730H", "-S740H", "-S750H", "-S760H", "-S930H", "-S940H", "-S950H", "-S960H", "X1400H", "X1500H", "X1600H",
-      "X1700H", "X2400H", "X2500H", "X2600H", "X2700H", "X3400H", "X3500H", "X3600H", "X3700H", "X4300H", "X4400H", "X4500H", "X4700H",
-      "X6300H", "X6400H", "X6500H", "X6700H", "X8500H", "AV7703", "AV7704", "AV7705", "AV7706", "AV8805", "NR1608", "NR1609", "NR1710",
+      "X1700H", "X2400H", "X2500H", "X2600H", "X2700H", "X3400H", "X3500H", "X3600H", "X4300H", "X4400H", "X4500H",
+      "X6300H", "X6400H", "AV7703", "AV7704", "AV7705", "AV7706", "AV8805", "NR1608", "NR1609", "NR1710",
       "NR1711", "SR5012", "SR5013", "SR5014", "SR5015", "SR6012", "SR6013", "SR6014", "SR6015", "SR7011", "SR7012", "SR7013", "SR7015",
       "SR8012", "SR8015"];
     const micCalProb = ["-S720W", "-S920W", "X1300W", "X2300W", "X3300W", "NR1607", "SR5011",
@@ -466,7 +467,7 @@
       "NR1710", "NR1711", "SR5012", "SR5013", "SR5014", "SR5015", "SR6013",
       "SR6014", "-S770H", "-S970H", "X1800H", "X2800H", "EMA 60", "MA 70s"];
     const noxo180 = ["-S720W", "-S920W", "X1300W", "X2300W", "X3300W", "NR1607", "SR5011", "SR6011", "X6500H", "-S730H", "-S740H", "-S930H", "-S940H",
-      "X1400H", "X1500H", "X2400H", "X2500H", "X3400H", "X3500H", "X4300H", "X4400H", "X4500H", "X6300H", "X6400H", "X6500H", "AV7703",
+      "X1400H", "X1500H", "X2400H", "X2500H", "X3400H", "X3500H", "X4300H", "X4400H", "X4500H", "X6300H", "X6400H", "AV7703",
       "AV7704", "AV7705", "NR1608", "NR1609", "SR5012", "SR5013", "SR6012", "SR6013", "SR7011", "SR7012", "SR7013", "SR8012"];
     
     /////////////////////////// Customization parameters for enthusiasts //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -539,7 +540,7 @@
         const hasSWChannels = jsonData.detectedChannels.some(channel => channel.commandId && channel.commandId.startsWith("SW"));
         if (!hasSWChannels) {
           console.error("No subwoofer detected in your calibration file. The tool cannot complete optimization without a subwoofer in the system!");
-          throw new Error;
+          throw new Error("No subwoofer channel found in calibration file");
         }
         subLO = -12;
         subHI = 12;
@@ -689,7 +690,7 @@
         console.info("Measurements in REW are consistent amd have been successfully sorted.");
       } else {
         console.warn("Please check your REW measurements. Optimization cannot continue!");
-        throw new Error;
+        throw new Error("REW measurements are invalid — check warnings above");
       }
     }
     async function compareREW() {
@@ -944,7 +945,7 @@
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
       enableBlock();
       enableGraph();
-      await new Promise((resolve) => setTimeout(resolve, 200));      
+      await new Promise((resolve) => setTimeout(resolve, 200));
       console.log("Optimization started...");
       console.warn("Please keep REW on 'SPL & Phase' tab, close any child windows and stay on this web page until optimization is completed!");
       disableGraph();
@@ -955,60 +956,68 @@
       document.getElementById('forceCentre').disabled = true;
       document.getElementById('forceLarge').disabled = true;
       document.getElementById('noInversion').disabled = true;
-      await sortREW();
-      await checkIfPaused();
-      await bootUp();
-      await checkIfPaused();
-      await groundWorks();
-      await checkIfPaused();
-      await optimizeLevels();
-      await checkIfPaused();
-      await generateFilters();
-      await checkIfPaused();
-      await witchCraft();
-      await checkIfPaused();
-      await aceXO();
-      await checkIfPaused();
-      await drawResults();
-      await checkIfPaused();
-      enableGraph();
-      disableBlock();
-      await updateAdy();
-      const endTime = performance.now();
-      const totalTime = (endTime - startTime) / 1000;
-      const formatTime = (seconds) => {
-          const minutes = Math.floor(seconds / 60);
-          const remainingSeconds = Math.round(seconds % 60);
-          if (minutes === 0) {
-              return `${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
-          } else if (remainingSeconds === 0) {
-              return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
-          } else {
-              return `${minutes} minute${minutes !== 1 ? 's' : ''} and ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
-          }
-      };
-      const getCurrentDateTime = () => {
-          const now = new Date();
-          return now.toLocaleString('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: true
-          });
-      };
-      console.log(`Congratulations! 'A1 EVO' optimization completed successfully in ${formatTime(totalTime)} on ${getCurrentDateTime()}.`);
-      console.info(`*****************************************************************************************************************************************`);
-      console.log("When prompted, save the optimized .ady file to your computer and transfer it to your MultEQ Editor app.");
-      console.log("Next, transfer ady file 'as is' from MultEQ Editor app to your AV receiver as you normally would after a calibration.");
-      console.warn("You should not turn Dynamic EQ on if you didn't measure your speakers with it on in REW and vice versa.")
-      console.log("If you are using Dynamic EQ, consider the included program to fix Audyssey's excessive surround boost at lower volumes.");
-      console.info("The Editor app graphs will no longer represent before/after speaker responses due to the special filtering technique implemented.");
-      console.log("You can save this log to your computer for future reference with mouse right click and by selecting 'Save as'.");
-      console.info(`Do not forget to regularly check YT video comments for info on frequent issues and solutions:<a href="https://www.youtube.com/watch?v=lmZ5yV1-wMI" target="_blank">https://www.youtube.com/watch?v=lmZ5yV1-wMI</a>`);
-      console.info(`*****************************************************************************************************************************************`);
-      console.log("Enjoy your EVO'lved sound!");
+      try {
+        await sortREW();
+        await checkIfPaused();
+        await bootUp();
+        await checkIfPaused();
+        await groundWorks();
+        await checkIfPaused();
+        await optimizeLevels();
+        await checkIfPaused();
+        await generateFilters();
+        await checkIfPaused();
+        await witchCraft();
+        await checkIfPaused();
+        await aceXO();
+        await checkIfPaused();
+        await drawResults();
+        await checkIfPaused();
+        enableGraph();
+        disableBlock();
+        await updateAdy();
+        const endTime = performance.now();
+        const totalTime = (endTime - startTime) / 1000;
+        const formatTime = (seconds) => {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.round(seconds % 60);
+            if (minutes === 0) {
+                return `${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
+            } else if (remainingSeconds === 0) {
+                return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+            } else {
+                return `${minutes} minute${minutes !== 1 ? 's' : ''} and ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
+            }
+        };
+        const getCurrentDateTime = () => {
+            const now = new Date();
+            return now.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        };
+        console.log(`Congratulations! 'A1 EVO' optimization completed successfully in ${formatTime(totalTime)} on ${getCurrentDateTime()}.`);
+        console.info(`*****************************************************************************************************************************************`);
+        console.log("When prompted, save the optimized .ady file to your computer and transfer it to your MultEQ Editor app.");
+        console.log("Next, transfer ady file 'as is' from MultEQ Editor app to your AV receiver as you normally would after a calibration.");
+        console.warn("You should not turn Dynamic EQ on if you didn't measure your speakers with it on in REW and vice versa.")
+        console.log("If you are using Dynamic EQ, consider the included program to fix Audyssey's excessive surround boost at lower volumes.");
+        console.info("The Editor app graphs will no longer represent before/after speaker responses due to the special filtering technique implemented.");
+        console.log("You can save this log to your computer for future reference with mouse right click and by selecting 'Save as'.");
+        console.info(`Do not forget to regularly check YT video comments for info on frequent issues and solutions:<a href="https://www.youtube.com/watch?v=lmZ5yV1-wMI" target="_blank">https://www.youtube.com/watch?v=lmZ5yV1-wMI</a>`);
+        console.info(`*****************************************************************************************************************************************`);
+        console.log("Enjoy your EVO'lved sound!");
+      } catch (error) {
+        enableGraph();
+        disableBlock();
+        console.error(`Optimization failed: ${error.message || error}`);
+        document.getElementById('startButton').disabled = false;
+        document.getElementById('pauseButton').disabled = true;
+      }
     }
     async function bootUp() {
       console.info("Resetting IR windows, EQ target shape and room curve settings for all measurements");
@@ -1047,7 +1056,7 @@
         }
       } else {
         console.warn(`Failed to fetch target curve, please make sure to have started REW API server! HTTP status code: ${tcResponse.status}.`);
-        throw new Error;
+        throw new Error(`Failed to retrieve target curve from REW API (HTTP ${tcResponse.status})`);
       };
       const rewVersion = await fetch(`http://localhost:4735/version`);
       if (rewVersion.ok) {
@@ -1055,7 +1064,7 @@
         console.infoUpdate(`Integrity checks completed successfully. Running Room EQ Wizard version ${rew.message}`);
       } else {
           console.error('There seems to be a problem with REW installation!');
-          throw new Error();
+          throw new Error(`REW version check failed (HTTP ${rewVersion.status})`);
         };
     }
     async function groundWorks() {      
@@ -1170,7 +1179,7 @@
       if (maxNegative > 0) {
         console.warn(`The distances/delays between your speakers/sub(s) are above the hardware limit of 6m by defualt!`);
         console.error(`It's technically not possible to correctly time align them. Optimization cannot continue!`)
-        throw new Error;
+        throw new Error("Speaker/subwoofer distances exceed the 6m hardware limit — time alignment is not possible");
       }
     }
     async function optimizeLevels() {
@@ -4879,9 +4888,11 @@
     async function fetch_mREW(indice = null, method = 'GET', _body = null) {
       let body;
       let requestUrl;
-      if (indice === null) { requestUrl = baseUrl; } else { requestUrl = baseUrl + `/${indice}` };
-      if (method === 'PUT') { body = _body }
+      if (indice === null) { requestUrl = baseUrl; } else { requestUrl = baseUrl + `/${indice}`; }
+      if (method === 'PUT') { body = _body; }
+      const deadline = Date.now() + 60_000;
       while (true) {
+        if (Date.now() > deadline) throw new Error(`fetch_mREW ${method} ${requestUrl} timed out after 60s`);
         try {
           const response = await fetch(requestUrl, {
             method: method,
@@ -4891,11 +4902,10 @@
           if (!response.ok) {
             await new Promise(resolve => setTimeout(resolve, speedDelay));
           } else {
-            const data = await response.json();
-            return data;
+            return response.json();
           }
         } catch (error) {
-          throw new Error('Error fetching result:', error);
+          throw new Error(`fetch_mREW ${method} ${requestUrl} failed: ${error.message}`, { cause: error });
         }
       }
     }
@@ -4930,28 +4940,25 @@
         const data = await response.json();
         return data;
       };
-      const checkResponse = async (data) => {
+      try {
+        const deadline = Date.now() + 180_000;
+        let data = await fetchData();
+        while (data.message && (data.message.includes('in progress') || data.message.includes('running'))) {
+          if (Date.now() > deadline) throw new Error(`postNext '${processName}' timed out after 180s`);
+          await new Promise((resolve) => setTimeout(resolve, speedDelay));
+          data = await fetchData();
+        }
         if (data.message && data.message.includes('ompleted')) {
           const resultUrl = `${baseUrl}/process-result`;
           const resultResponse = await fetch(resultUrl);
           if (!resultResponse.ok) {
             throw new Error('Failed to fetch result data!');
           }
-          const resultData = await resultResponse.json();
-          return resultData;
-        } else if (data.message.includes('in progress') || data.message.includes('running')) {
-          await new Promise((resolve) => setTimeout(resolve, speedDelay));
-          return checkResponse(await fetchData());
-        } else {
-          return data;
+          return await resultResponse.json();
         }
-      };
-      try {
-        const data = await fetchData();
-        const result = await checkResponse(data);
-        return result;
+        return data;
       } catch (error) {
-        throw new Error;
+        throw new Error(`postNext '${processName}' failed: ${error.message}`, { cause: error });
       }
     }
     async function postNext2(processName, indices, parameters = null) {
@@ -4972,28 +4979,25 @@
         const data = await response.json();
         return data;
       };
-      const checkResponse = async (data) => {
+      try {
+        const deadline = Date.now() + 180_000;
+        let data = await fetchData();
+        while (data.message && (data.message.includes('in progress') || data.message.includes('running'))) {
+          if (Date.now() > deadline) throw new Error(`postNext2 '${processName}' timed out after 180s`);
+          await new Promise((resolve) => setTimeout(resolve, speedDelay));
+          data = await fetchData();
+        }
         if (data.message && data.message.includes('ompleted')) {
           const resultUrl = `${baseUrl}/process-result`;
           const resultResponse = await fetch(resultUrl);
           if (!resultResponse.ok) {
             throw new Error('Failed to fetch result data!');
           }
-          const resultData = await resultResponse.json();
-          return resultData;
-        } else if (data.message.includes('in progress') || data.message.includes('running')) {
-          await new Promise((resolve) => setTimeout(resolve, speedDelay));
-          return checkResponse(await fetchData());
-        } else {
-          return data;
+          return await resultResponse.json();
         }
-      };
-      try {
-        const data = await fetchData();
-        const result = await checkResponse(data);
-        return result;
+        return data;
       } catch (error) {
-        throw new Error;
+        throw new Error(`postNext2 '${processName}' failed: ${error.message}`, { cause: error });
       }
     }
     async function postSafe(requestUrl, parameters, message) {
@@ -5004,39 +5008,38 @@
           body: JSON.stringify(parameters),
         });
         if (!response.ok) {
-          throw new Error('Network response was not OK!');
+          throw new Error(`Network response was not OK (HTTP ${response.status})`);
         }
-        const data = await response.json();
-        return data;
-      };
-      const checkResponse = async (data) => {
-        if (data.message.includes(message)) {
-          return data;
-        } else if (data.message.includes('in progress') || data.message.includes('running')) {
-          await new Promise((resolve) => setTimeout(resolve, speedDelay));
-          return checkResponse(await fetchData());
-        } else {
-          throw new Error(`Unexpected response: ${data.message}`);
-        }
+        return response.json();
       };
       try {
-        const data = await fetchData();
-        const result = await checkResponse(data);
-        return result;
+        const deadline = Date.now() + 120_000;
+        let data = await fetchData();
+        while (data.message && (data.message.includes('in progress') || data.message.includes('running'))) {
+          if (Date.now() > deadline) throw new Error(`postSafe '${message}' timed out after 120s`);
+          await new Promise((resolve) => setTimeout(resolve, speedDelay));
+          data = await fetchData();
+        }
+        if (!data.message || !data.message.includes(message)) {
+          throw new Error(`Unexpected response: ${data.message}`);
+        }
+        return data;
       } catch (error) {
-        throw new Error;
+        throw new Error(`postSafe ${requestUrl} failed: ${error.message}`, { cause: error });
       }
     }
     async function postDelete(indice) {
-      const mDeleted = `Measurement ${indice} deleted`
+      const mDeleted = `Measurement ${indice} deleted`;
+      const deadline = Date.now() + 60_000;
       while (true) {
+        if (Date.now() > deadline) throw new Error(`postDelete ${indice} timed out after 60s`);
         try {
           const response = await fetch(`${baseUrl}/${indice}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
           });
           if (!response.ok) {
-            throw new Error('Network response was not OK!');
+            throw new Error(`Network response was not OK (HTTP ${response.status})`);
           }
           const data = await response.json();
           if (data.message === mDeleted) {
@@ -5045,7 +5048,7 @@
             await new Promise(resolve => setTimeout(resolve, speedDelay));
           }
         } catch (error) {
-          throw new Error('Error fetching result:', error);
+          throw new Error(`postDelete ${indice} failed: ${error.message}`, { cause: error });
         }
       }
     }
@@ -5053,29 +5056,26 @@
       const requestUrl = `${baseUrl}/${indice}/${extUrl}`;
       let options;
       if (parameters === null) {
-        options = {
-          method: 'GET'
-        };
+        options = { method: 'GET' };
       } else {
         options = {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(parameters)
         };
       }
+      const deadline = Date.now() + 60_000;
       while (true) {
+        if (Date.now() > deadline) throw new Error(`fetchSafe ${extUrl}/${indice} timed out after 60s`);
         try {
           const response = await fetch(requestUrl, options);
           if (!response.ok) {
             await new Promise(resolve => setTimeout(resolve, speedDelay));
           } else {
-            const data = await response.json();
-            return data;
+            return response.json();
           }
         } catch (error) {
-          throw new Error('Error fetching result:', error);
+          throw new Error(`fetchSafe ${extUrl}/${indice} failed: ${error.message}`, { cause: error });
         }
       }
     }
@@ -5149,17 +5149,14 @@
         const requestUrl = `http://localhost:4735/alignment-tool/${extUrl}`;
         const response = await fetch(requestUrl, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' }
         });
         if (!response.ok) {
           throw new Error(`HTTP error ${response.status}`);
         }
-        const data = await response.json();
-        return data;
+        return response.json();
       } catch (error) {
-        throw new Error('Error fetching result:', error);
+        throw new Error(`fetchAlign ${extUrl} failed: ${error.message}`, { cause: error });
       }
     }
     async function disableBlock() {
@@ -21580,6 +21577,14 @@
       function scrollToBottom() {
         logContainer.scrollTop = logContainer.scrollHeight;
       }
+      window.addEventListener('unhandledrejection', function (event) {
+        const msg = event.reason && event.reason.message ? event.reason.message : String(event.reason);
+        const errorEntry = `<div class="error">${new Date().toLocaleTimeString()} [ERROR!] Unhandled error: ${msg}</div>`;
+        logContainer.insertAdjacentHTML('beforeend', errorEntry);
+        scrollToBottom();
+        document.getElementById('startButton').disabled = false;
+        document.getElementById('pauseButton').disabled = true;
+      });
       let lastInfoEntry = null;
       const originalWarn = console.warn;
       console.warn = function (...args) {
