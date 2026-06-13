@@ -30,6 +30,10 @@ Effortlessly integrate the power of REW into your home audio setup, gaining a co
   - [Nexus Warnings explained](#nexus-warnings-explained)
 - [Tools](#tools)
   - [\>\> A1 Evo Calibration Tool](#-a1-evo-calibration-tool)
+- [Contributing](#contributing)
+  - [Project structure](#project-structure)
+  - [Development workflow](#development-workflow)
+  - [Bumping the version](#bumping-the-version)
 - [Disclaimer](#disclaimer)
 
 ## Requirements
@@ -197,12 +201,12 @@ __Tip__: It's a good idea to save your REW project after each chapter, allowing 
    - We don't use it, because REW cannot generate Atmos sweeps.
 
    __Levels__
-   1. Selecton on drop-down ```Use main speaker test signal to check/set elvels```.
+   1. Select on drop-down ```Use main speaker test signal to check/set levels```.
    2. Click on ```Check levels...```.
    3. Click on ```Next```.
    - __Info:__ You see on level meter that we receive some measurement from the microphone. If not, your microphone or output is not working.
 5. Go to ```Preferences->Cal file```
-   1. Select your appropiate calibration file for your microphone.
+   1. Select your appropriate calibration file for your microphone.
    2. No calibration file for your soundcard.
 
 #### Measurement settings
@@ -334,6 +338,75 @@ Please set 'Subwoofer Mode' to 'LFE + Main', set 'Bass extraction lpf' to 80 Hz 
 ## Tools
 
 ### [>> A1 Evo Calibration Tool](https://brnkr.github.io/audyssey_one/nexus.html)
+
+## Contributing
+
+### Project structure
+
+```
+audyssey_one/
+├── nexus.src.html          # HTML template (source of truth for markup)
+├── nexus.html              # Built output — do not edit by hand
+├── src/
+│   ├── main.js             # Entry point: wires DOM event listeners
+│   ├── version.js          # Build-time version constant (__VERSION__)
+│   ├── state.js            # Shared mutable runtime state
+│   ├── config.js           # User-editable constants (advanced)
+│   ├── utils.js            # Pure math utilities (unit-tested)
+│   ├── calibration.js      # .ady file parsing and channel setup
+│   ├── pipeline.js         # Top-level optimization orchestration
+│   ├── filters.js          # EQ filter generation
+│   ├── crossover.js        # Crossover search and bass management
+│   ├── alignment.js        # Time alignment algorithms
+│   ├── signal.js           # Signal processing helpers
+│   ├── rew-api.js          # REW localhost:4735 API wrappers
+│   ├── ui.js               # UI event handlers and console bridge
+│   └── data/
+│       ├── receivers.js    # Receiver model lists
+│       └── mic-cal.js      # Mic calibration kernel (16 384 entries)
+├── scripts/
+│   ├── build.mjs           # esbuild pipeline → nexus.html
+│   └── extract-modules.mjs # One-time extraction helper (already run)
+├── tests/
+│   └── utils.test.mjs      # Unit tests for src/utils.js
+└── package.json            # Version source of truth + npm scripts
+```
+
+### Development workflow
+
+**Prerequisites:** Node.js 20+
+
+```bash
+npm install          # install esbuild (only dev dependency)
+npm run build        # bundle src/ → nexus.html
+npm run dev          # watch mode — rebuilds on every src/ change
+npm test             # run unit tests (Node built-in test runner, no framework)
+```
+
+`nexus.html` is the distributable — it is a single self-contained HTML file
+that runs entirely in the browser. Commit it alongside source changes so
+GitHub Pages always serves the latest build.
+
+The CI pipeline (`.github/workflows/lint.yml`) enforces this: it runs
+`npm run build` and fails if `nexus.html` is stale.
+
+### Bumping the version
+
+Edit `package.json`:
+
+```json
+"version": "1.6.0"
+```
+
+Then rebuild:
+
+```bash
+npm run build
+```
+
+The build injects the version into the UI badge, the startup console message,
+and the README heading automatically. No other files need to be touched.
+Update `CHANGELOG.md` by hand to describe what changed.
 
 ## Disclaimer
 
