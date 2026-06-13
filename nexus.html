@@ -335,7 +335,7 @@
 </head>
 <body>
 <div class="container">
-  <h2>A1 Evo <strong>1-click</strong> Optimization tool for home cinema systems with Audyssey®<span class="version-number">Nexus 1.5</span></h2>
+  <h2>A1 Evo <strong>1-click</strong> Optimization tool for home cinema systems with Audyssey®<span class="version-number">Nexus 1.5.0</span></h2>
   <h3>Step-by-Step Instructions:</h3>
   <ol>
     <li class="smaller-font">You will need to have Room EQ Wizard (v5.40 Beta) installed on your computer
@@ -511,6 +511,9 @@
     noInversion: false,
     limitLPF: null
   };
+
+  // src/version.js
+  var version = "1.5.0";
 
   // src/utils.js
   function roundToNearestHalf(num) {
@@ -17453,7 +17456,7 @@
 
   // src/calibration.js
   function extractAdy(event) {
-    console.info("Initialising A1 Evo Nexus 1.5 ...");
+    console.info(`Initialising A1 Evo Nexus ${version} ...`);
     updateCheckboxStates();
     const file = event.target.files[0];
     state.fileName = file.name;

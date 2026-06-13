@@ -1,11 +1,12 @@
 import { state } from './state.js';
+import { version } from './version.js';
 import { getDistancePure } from './utils.js';
 import { modelsSoS300, micCalProb, noxo180 } from './data/receivers.js';
 import { antiMicCal } from './data/mic-cal.js';
 import { baseUrl, speedDelay, fetch_mREW, postSafe, postDelete } from './rew-api.js';
 
 function extractAdy(event) {
-  console.info("Initialising A1 Evo Nexus 1.5 ...");
+  console.info(`Initialising A1 Evo Nexus ${version} ...`);
   updateCheckboxStates();
   const file = event.target.files[0];
   state.fileName = file.name;

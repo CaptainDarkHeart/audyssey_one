@@ -16,10 +16,14 @@ const ROOT = path.join(__dirname, '..');
 const ENTRY = path.join(ROOT, 'src', 'main.js');
 const HTML_TEMPLATE = path.join(ROOT, 'nexus.src.html');
 const HTML_OUT = path.join(ROOT, 'nexus.html');
+const README = path.join(ROOT, 'README.md');
 const WATCH = process.argv.includes('--watch');
+
+const { version } = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
 const SCRIPT_START = '<!-- BUILD:SCRIPT -->';
 const SCRIPT_END   = '<!-- /BUILD:SCRIPT -->';
+const VERSION_MARKER = '<!-- BUILD:VERSION -->';
 
 async function injectScript(bundledJs) {
   let html = fs.readFileSync(HTML_TEMPLATE, 'utf8');
@@ -28,15 +32,27 @@ async function injectScript(bundledJs) {
   if (start === -1 || end === -1) {
     throw new Error(`nexus.src.html must contain ${SCRIPT_START} and ${SCRIPT_END} markers`);
   }
-  const injected =
+  const injected = (
     html.slice(0, start) +
     SCRIPT_START + '\n<script>\n' +
     bundledJs +
     '\n</script>\n' +
     SCRIPT_END +
-    html.slice(end + SCRIPT_END.length);
+    html.slice(end + SCRIPT_END.length)
+  ).replaceAll(VERSION_MARKER, version);
   fs.writeFileSync(HTML_OUT, injected, 'utf8');
-  console.log(`[build] nexus.html updated (${(injected.length / 1024).toFixed(0)} KB)`);
+
+  // Keep README version in sync
+  const readme = fs.readFileSync(README, 'utf8');
+  const updatedReadme = readme.replace(
+    /\[A1 Evo Nexus [^\]]*\]/,
+    `[A1 Evo Nexus ${version}]`
+  );
+  if (updatedReadme !== readme) {
+    fs.writeFileSync(README, updatedReadme, 'utf8');
+  }
+
+  console.log(`[build] nexus.html updated (${(injected.length / 1024).toFixed(0)} KB) — v${version}`);
 }
 
 const buildOptions = {
@@ -47,6 +63,7 @@ const buildOptions = {
   minify: false,
   write: false,
   logLevel: 'info',
+  define: { __VERSION__: JSON.stringify(version) },
 };
 
 if (WATCH) {

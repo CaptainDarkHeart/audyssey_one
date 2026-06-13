@@ -2,7 +2,7 @@
 
 ![A1 Evo](imgs/a1_evo.jpeg)
 
-## Current Version: [A1 Evo Nexus](https://brnkr.github.io/audyssey_one/nexus.html)<!-- omit from toc -->
+## Current Version: [A1 Evo Nexus 1.5.0](https://brnkr.github.io/audyssey_one/nexus.html)<!-- omit from toc -->
 
 Unlock the ultimate potential of your home theater audio with A1 Evo Nexus, the next evolution in audio optimization for the discerning audiophile. This advanced tool goes beyond traditional Audyssey calibrations, allowing you to use REW measurements for unparalleled precision and higher resolution. With the ability to fine-tune your sound to an extraordinary level of detail, A1 Evo Nexus offers a significant leap in audio performance, catering to those who are in constant pursuit of better sound.
 
