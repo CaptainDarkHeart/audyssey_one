@@ -2277,7 +2277,7 @@ async function updateAdy() {
   const bytesSub = Uint8Array.from(atob(subResponse.magnitude), c => c.charCodeAt(0));
   const bufferSub = bytesSub.buffer;
   const dataSub = new DataView(bufferSub);
-  spSum = 0; overLimit = false;
+  let spSum = 0, overLimit = false;
   for (let k = 0; k <= 681; k++) {
     const subMagnitude = dataSub.getFloat32(k * 4);
     subArray.push([sfreqArray[k], subMagnitude + subTarget[k]]);
@@ -2288,7 +2288,7 @@ async function updateAdy() {
   const customTargetCurvePointsSub = subArray.map(point => `{${point[0]}, ${point[1]}}`);
   const subChannel = state.jsonData.detectedChannels[state.nSpeakers - 1];
   subChannel.customTargetCurvePoints = customTargetCurvePointsSub;
-  k = 0;
+  let k = 0;
   for (let channel of state.jsonData.detectedChannels) {
     if (channel.commandId.startsWith("SW")) {
       const customDistanceValue = parseFloat(state.customDistance[state.nSpeakers]) + parseFloat(state.delayAdjustment[state.nSpeakers]) - parseFloat(channel.delayAdjustment);
@@ -2296,9 +2296,11 @@ async function updateAdy() {
       channel.customDistance = Math.round(parseFloat(customDistanceValue) * 100) / 100;
       channel.channelReport.isReversePolarity = state.subLPF[k];
       customLevelValue += spSum;
-      if (state.customLevel[i] < -12) {
-          extraNeeded = -(state.customLevel[i] + 12);
-          state.customLevel[i] = -12;
+      // In the original monolith this referenced the loop counter `i` left over
+      // from the per-speaker loop above, whose final value is state.nSpeakers.
+      if (state.customLevel[state.nSpeakers] < -12) {
+          extraNeeded = -(state.customLevel[state.nSpeakers] + 12);
+          state.customLevel[state.nSpeakers] = -12;
           console.warn(`Subwoofer ${channel.commandId} volume is maxed out at -12dB, an additional ${extraNeeded.toFixed(1)}dB would be needed for full Audyssey auto-leveling compensation!`);
       } else {
           console.info(`Applied ${spSum.toFixed(1)}dB extra adjustment to speaker ${channel.commandId} to compensate for Audyssey auto-leveling.`);

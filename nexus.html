@@ -17084,8 +17084,8 @@
         } else {
           return response.json();
         }
-      } catch (error2) {
-        throw new Error(`fetch_mREW ${method} ${requestUrl} failed: ${error2.message}`, { cause: error2 });
+      } catch (error) {
+        throw new Error(`fetch_mREW ${method} ${requestUrl} failed: ${error.message}`, { cause: error });
       }
     }
   }
@@ -17137,11 +17137,11 @@
         return await resultResponse.json();
       }
       return data;
-    } catch (error2) {
-      throw new Error(`postNext '${processName}' failed: ${error2.message}`, { cause: error2 });
+    } catch (error) {
+      throw new Error(`postNext '${processName}' failed: ${error.message}`, { cause: error });
     }
   }
-  async function postNext22(processName, indices, parameters = null) {
+  async function postNext2(processName, indices, parameters = null) {
     let requestUrl;
     let body;
     requestUrl = `${baseUrl}/${indices}/command`;
@@ -17176,8 +17176,8 @@
         return await resultResponse.json();
       }
       return data;
-    } catch (error2) {
-      throw new Error(`postNext2 '${processName}' failed: ${error2.message}`, { cause: error2 });
+    } catch (error) {
+      throw new Error(`postNext2 '${processName}' failed: ${error.message}`, { cause: error });
     }
   }
   async function postSafe(requestUrl, parameters, message) {
@@ -17204,11 +17204,11 @@
         throw new Error(`Unexpected response: ${data.message}`);
       }
       return data;
-    } catch (error2) {
-      throw new Error(`postSafe ${requestUrl} failed: ${error2.message}`, { cause: error2 });
+    } catch (error) {
+      throw new Error(`postSafe ${requestUrl} failed: ${error.message}`, { cause: error });
     }
   }
-  async function postDelete2(indice) {
+  async function postDelete(indice) {
     const mDeleted = `Measurement ${indice} deleted`;
     const deadline = Date.now() + 6e4;
     while (true) {
@@ -17227,8 +17227,8 @@
         } else {
           await new Promise((resolve) => setTimeout(resolve, speedDelay));
         }
-      } catch (error2) {
-        throw new Error(`postDelete ${indice} failed: ${error2.message}`, { cause: error2 });
+      } catch (error) {
+        throw new Error(`postDelete ${indice} failed: ${error.message}`, { cause: error });
       }
     }
   }
@@ -17254,8 +17254,8 @@
         } else {
           return response.json();
         }
-      } catch (error2) {
-        throw new Error(`fetchSafe ${extUrl}/${indice} failed: ${error2.message}`, { cause: error2 });
+      } catch (error) {
+        throw new Error(`fetchSafe ${extUrl}/${indice} failed: ${error.message}`, { cause: error });
       }
     }
   }
@@ -17319,9 +17319,9 @@
         return resultData;
       }
       return data;
-    } catch (error2) {
-      console.error("Error in postAlign:", error2);
-      throw error2;
+    } catch (error) {
+      console.error("Error in postAlign:", error);
+      throw error;
     }
   }
   async function fetchAlign(extUrl) {
@@ -17335,8 +17335,8 @@
         throw new Error(`HTTP error ${response.status}`);
       }
       return response.json();
-    } catch (error2) {
-      throw new Error(`fetchAlign ${extUrl} failed: ${error2.message}`, { cause: error2 });
+    } catch (error) {
+      throw new Error(`fetchAlign ${extUrl} failed: ${error.message}`, { cause: error });
     }
   }
   async function disableBlock() {
@@ -17369,334 +17369,56 @@
     });
   }
 
-  // src/calibration.js
-  function extractAdy(event) {
-    console.info("Initialising A1 Evo Nexus 1.5 ...");
-    updateCheckboxStates();
-    const file = event.target.files[0];
-    state.fileName = file.name;
-    console.info(`Audyssey calibration '${state.fileName}' has been uploaded!`);
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-      let adyContents = e.target.result;
-      state.jsonData = JSON.parse(adyContents);
-      let modelName = state.jsonData.targetModelName;
-      const model = modelName.slice(-6);
-      state.sOs = modelsSoS300.includes(model) ? 300 : 343;
-      state.isCirrusLogic = micCalProb.includes(model) ? true : false;
-      state.hasxo180 = noxo180.includes(model) ? false : true;
-      state.hasxo180 ? state.freqIndex = [15.75, 40, 60, 80, 90, 100, 110, 120, 150, 180, 200, 250] : state.freqIndex = [15.75, 40, 60, 80, 90, 100, 110, 120, 150, 200, 250];
-      state.freqLength = state.freqIndex.length;
-      console.info(`Speed of sound setting has been automatically adjusted for your ${modelName} at ${state.sOs} m/s.`);
-      const hasSWChannels = state.jsonData.detectedChannels.some((channel) => channel.commandId && channel.commandId.startsWith("SW"));
-      if (!hasSWChannels) {
-        console.error("No subwoofer detected in your calibration file. The tool cannot complete optimization without a subwoofer in the system!");
-        throw new Error("No subwoofer channel found in calibration file");
-      }
-      state.subLO = -12;
-      state.subHI = 12;
-      state.cDist = getDistance(state.jsonData.detectedChannels);
-      if (`subwooferLayout` in state.jsonData) {
-        state.jsonData.subwooferLayout = "N/A";
-      }
-      if (`subwooferMode` in state.jsonData) {
-        state.jsonData.subwooferMode = state.sOs === 343 ? "Standard" : "N/A";
-      }
-      const zerosArray = [1, ...Array(16383).fill(0)];
-      state.jsonData.dynamicVolume = false;
-      state.jsonData.lfc = false;
-      state.jsonData.dynamicEq = false;
-      state.jsonData.enTargetCurveType = 1;
-      let subwooferTypeStart = 54;
-      let subwooferCounter = 0;
-      const subwooferChannels = state.jsonData.detectedChannels.filter((channel) => channel.commandId.startsWith("SW"));
-      state.numSub = subwooferChannels.length;
-      state.jsonData.detectedChannels.forEach((channel, index) => {
-        const isSubwoofer = channel.commandId.startsWith("SW");
-        const isFirstSubwoofer = isSubwoofer && index === state.jsonData.detectedChannels.indexOf(subwooferChannels[0]);
-        if (isSubwoofer) {
-          channel.enChannelType = subwooferTypeStart + subwooferCounter;
-          subwooferCounter++;
-          channel.midrangeCompensation = true;
-          channel.frequencyRangeRolloff = 250;
-          channel.customLevel = "0.0";
-          channel.customDistance = 0;
-          channel.channelReport.customEnSpeakerConnect = 3;
-          channel.channelReport.distance = 0;
-          channel.channelReport.isReversePolarity = true;
-          channel.trimAdjustment = "0.0";
-          channel.delayAdjustment = "0.0";
-          if ("state.customCrossover" in channel) {
-            delete channel.customCrossover;
-          }
-          if ("customSpeakerType" in channel) {
-            delete channel.customSpeakerType;
-          }
-          if (isFirstSubwoofer) {
-            channel.customTargetCurvePoints = [];
-            const responseData = channel.responseData;
-            const keysToKeep = Object.keys(responseData).slice(0, 3);
-            keysToKeep.forEach((key) => {
-              responseData[key] = state.isCirrusLogic ? antiMicCal : zerosArray;
-            });
-            Object.keys(responseData).forEach((key) => {
-              if (!keysToKeep.includes(key)) {
-                delete responseData[key];
-              }
-            });
-          } else {
-            if ("customTargetCurvePoints" in channel) {
-              delete channel.customTargetCurvePoints;
-            }
-            channel.responseData = {};
-          }
-        } else {
-          channel.customTargetCurvePoints = [];
-          channel.midrangeCompensation = false;
-          channel.frequencyRangeRolloff = 2e4;
-          channel.customLevel = "0.0";
-          channel.customDistance = 0;
-          channel.customCrossover = "F";
-          channel.customSpeakerType = "L";
-          channel.channelReport.customEnSpeakerConnect = 2;
-          channel.channelReport.distance = 0;
-          channel.customTargetCurvePoints = [];
-          const responseData = channel.responseData;
-          const keysToKeep = Object.keys(responseData).slice(0, 3);
-          keysToKeep.forEach((key) => {
-            responseData[key] = state.isCirrusLogic ? antiMicCal : zerosArray;
-          });
-          Object.keys(responseData).forEach((key) => {
-            if (!keysToKeep.includes(key)) {
-              delete responseData[key];
-            }
-          });
-        }
-      });
-      (async function() {
-        try {
-          document.getElementById("saveButton").disabled = false;
-          document.getElementById("saveDEQButton").disabled = false;
-          await compareREW();
-          if (!state.dontStart) {
-            document.getElementById("startButton").disabled = false;
-          }
-        } catch (error2) {
-          console.error("An error occurred:", error2);
-        }
-      })();
-    };
-    reader.readAsText(file);
-  }
-  async function saveBaseJson() {
-    state.jsonData.dynamicEq = false;
-    let adyContents = JSON.stringify(state.jsonData, null, 2);
-    const blob = new Blob([adyContents], { type: "application/json" });
-    const urlBlob = URL.createObjectURL(blob);
-    const downloadLink = document.createElement("a");
-    downloadLink.href = urlBlob;
-    downloadLink.download = "AVReceiverREWmode.ady";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-  }
-  async function saveDeqBaseJson() {
-    state.jsonData.dynamicEq = true;
-    let adyContents = JSON.stringify(state.jsonData, null, 2);
-    const blob = new Blob([adyContents], { type: "application/json" });
-    const urlBlob = URL.createObjectURL(blob);
-    const downloadLink = document.createElement("a");
-    downloadLink.href = urlBlob;
-    downloadLink.download = "AVReceiverREWmodeDEQ.ady";
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-  }
-  function getDistance(channels) {
-    let dist = parseFloat(channels[1].channelReport.distance);
-    if (isNaN(dist) || dist === 0) {
-      dist = parseFloat(channels[1].customDistance);
-      if (isNaN(dist) || dist === 0 || dist === null) {
-        dist = 2.75;
-        state.noDistance = true;
-      }
-    }
-    if (CenterSpeakerDistance > 0) {
-      dist = CenterSpeakerDistance / 343 * state.sOs;
-      state.noDistance = false;
-    }
-    return dist;
-  }
-  async function sortREW() {
-    console.info("Checking and sorting measurements in REW...");
-    let noErrors = true;
-    const allowedNames = ["FL", "FR", "C", "SLA", "SRA", "SBL", "SBR", "SB", "FHL", "FHR", "FWL", "FWR", "TFL", "TFR", "TML", "TMR", "TRL", "TRR", "RHL", "RHR", "FDL", "FDR", "SDL", "SDR", "BDL", "BDR", "SHL", "SHR", "TS", "CH", "SW1", "SW2", "SW3", "SW4"];
-    let measurements2 = await fetch_mREW();
-    let mCount = Object.keys(measurements2).length;
-    let measurementArray = Object.keys(measurements2).map((key) => ({
-      index: parseInt(key),
-      title: measurements2[key].title
-    }));
-    let titleSet = /* @__PURE__ */ new Set();
-    let duplicates = [];
-    let invalidNames = [];
-    for (let measurement of measurementArray) {
-      if (titleSet.has(measurement.title)) {
-        duplicates.push(measurement.title);
-      } else {
-        titleSet.add(measurement.title);
-      }
-      if (!allowedNames.includes(measurement.title)) {
-        invalidNames.push(measurement.title);
-      }
-    }
-    if (duplicates.length > 0) {
-      console.warn("Duplicate measurements found:\n" + duplicates.join("\n"));
-      noErrors = false;
-    }
-    if (invalidNames.length > 0) {
-      console.warn("Measurements with invalid names found:\n" + invalidNames.join("\n"));
-      noErrors = false;
-    }
-    if (noErrors) {
-      let swMeasurements = measurementArray.filter((m) => m.title.startsWith("SW"));
-      let bdMeasurements = measurementArray.filter((m) => m.title.startsWith("BD"));
-      let otherMeasurements = measurementArray.filter((m) => !m.title.startsWith("SW") && !m.title.startsWith("BD"));
-      swMeasurements.sort((a, b) => a.title.localeCompare(b.title));
-      bdMeasurements.sort((a, b) => a.title.localeCompare(b.title));
-      otherMeasurements.sort((a, b) => a.title.localeCompare(b.title));
-      let sortedMeasurements = [
-        ...otherMeasurements,
-        ...bdMeasurements,
-        ...swMeasurements
-      ];
-      let newIndex = mCount + 1;
-      for (let measurement of sortedMeasurements) {
-        await postSafe(`http://localhost:4735/measurements/${measurement.index}/command`, { command: "Response copy" }, "Completed");
-        const titleNew = measurement.title + "o";
-        await fetch_mREW(newIndex, "PUT", { title: titleNew });
-        newIndex++;
-      }
-      for (let i2 = mCount; i2 >= 1; i2--) {
-        await postDelete2(i2);
-      }
-      for (let i2 = 1; i2 <= state.nSpeakers + state.numSub - 1; i2++) {
-        const mt = await fetch_mREW(i2);
-        const t = mt.title;
-        state.commandId[i2] = t.slice(0, -1);
-      }
-      console.info("Measurements in REW are consistent amd have been successfully sorted.");
-    } else {
-      console.warn("Please check your REW measurements. Optimization cannot continue!");
-      throw new Error("REW measurements are invalid \u2014 check warnings above");
-    }
-  }
-  async function compareREW() {
-    const allowedNames = ["FL", "FR", "C", "SLA", "SRA", "SBL", "SBR", "SB", "FHL", "FHR", "FWL", "FWR", "TFL", "TFR", "TML", "TMR", "TRL", "TRR", "RHL", "RHR", "FDL", "FDR", "SDL", "SDR", "BDL", "BDR", "SHL", "SHR", "TS", "CH", "SW1", "SW2", "SW3", "SW4"];
-    try {
-      let measurements2 = await fetch_mREW();
-      if (!measurements2 || Object.keys(measurements2).length === 0) {
-        console.warn("No measurements found in REW.");
-        return;
-      }
-      state.dontStart = false;
-      console.info("Comparing REW measurements with the uploaded calibration file...");
-      let measurementArray = Object.keys(measurements2).map((key) => ({
-        index: parseInt(key),
-        title: measurements2[key].title
-      }));
-      let jsonNames = state.jsonData.detectedChannels.map((channel) => channel.commandId);
-      let noSpeakerErrors = true;
-      let rewSWMeasurements = measurementArray.filter((m) => m.title.startsWith("SW"));
-      let rewNonSWMeasurements = measurementArray.filter((m) => !m.title.startsWith("SW"));
-      let jsonSWMeasurements = jsonNames.filter((name) => name.startsWith("SW"));
-      let jsonNonSWMeasurements = jsonNames.filter((name) => !name.startsWith("SW"));
-      let unmatchedREWNames = rewNonSWMeasurements.filter(
-        (rewMeasurement) => !jsonNonSWMeasurements.includes(rewMeasurement.title)
-      ).map((m) => m.title);
-      let unmatchedJSONNames = jsonNonSWMeasurements.filter(
-        (jsonName) => !rewNonSWMeasurements.some((rewMeasurement) => rewMeasurement.title === jsonName)
-      );
-      if (unmatchedREWNames.length > 0 || unmatchedJSONNames.length > 0) {
-        console.warn("Unmatched speakers were found:");
-        noSpeakerErrors = false;
-        if (unmatchedREWNames.length > 0) {
-          console.warn("In REW: " + unmatchedREWNames.join(", "));
-        }
-        if (unmatchedJSONNames.length > 0) {
-          console.warn("In uploaded calibration file (.ady): " + unmatchedJSONNames.join(", "));
-        }
-      }
-      if (noSpeakerErrors) {
-        console.info("All speaker checks passed. Proceeding with subwoofer(s) check...");
-      } else {
-        console.error("Measurements in REW did NOT match with the speakers in the uploaded calibration file!");
-        throw new Error(`UnmatchedSpeakers: Please upload a suitable .ady file or load/replace REW measurements and restart the script.`);
-      }
-      state.nSpeakers = rewNonSWMeasurements.length + 1;
-      let firstSWChannel = state.jsonData.detectedChannels.find((ch) => ch.commandId.startsWith("SW"));
-      if (!firstSWChannel) {
-        console.error("No Subwoofer channel was found in the calibration file, optimization cannot proceed!");
-        throw new Error(`NoSubwooferError: Evo can only optimize systems with a subwoofer.`);
-      }
-      if (rewSWMeasurements.length !== jsonSWMeasurements.length) {
-        console.warn(`Mismatch in the number of subwoofers between REW (${rewSWMeasurements.length}) and the uploaded .ady file (${jsonSWMeasurements.length}).`);
-        if (rewSWMeasurements.length === 0) {
-          throw new Error(`SubwooferError: You have NO subwoofer measurements in REW. Please check and restart the script!`);
-        }
-        console.warn("Overriding calibration file subwoofer structure based on the number of subwoofer measurements in REW!");
-        if (`subwooferNum` in state.jsonData) {
-          state.jsonData.subwooferNum = rewSWMeasurements.length;
-        }
-        let multeqType = parseInt(state.jsonData.enMultEQType);
-        if (rewSWMeasurements.length > 1 && multeqType < 2) {
-          throw new Error(`SubwooferError: You have more than one subwoofer measurement in REW and this is not compatible with your AV Receiver. Please check and restart the script!`);
-        }
-        state.jsonData.detectedChannels = state.jsonData.detectedChannels.filter((ch) => !ch.commandId.startsWith("SW") || ch === firstSWChannel);
-        if (multeqType > 1) {
-          firstSWChannel.enChannelType = 54;
-        }
-        let chType = parseInt(firstSWChannel.enChannelType);
-        state.swChannelCount = rewSWMeasurements.length;
-        state.numSub = state.swChannelCount;
-        if (state.numSub > 1) {
-          state.bassMode = "Directional";
-        }
-        for (let i2 = 1; i2 < rewSWMeasurements.length; i2++) {
-          let newSWChannel = JSON.parse(JSON.stringify(firstSWChannel));
-          newSWChannel.commandId = `SW${i2 + 1}`;
-          chType++;
-          newSWChannel.enChannelType = chType;
-          state.jsonData.detectedChannels.push(newSWChannel);
-          if ("customTargetCurvePoints" in newSWChannel) {
-            delete newSWChannel.customTargetCurvePoints;
-          }
-          newSWChannel.responseData = {};
-        }
-        console.log("Subwoofer reconciliation complete. Consider saving a copy of the updated base calibration file for future use!");
-      } else {
-        console.info("Subwoofer count consistency checks passed!");
-      }
-      document.getElementById("button1").disabled = true;
-    } catch (error2) {
-      if (error2.message.startsWith("UnmatchedSpeakers")) {
-        console.error(error2.message.replace("UnmatchedSpeakers: ", ""));
-      } else if (error2.message.startsWith("NoSubwooferError")) {
-        console.error(error2.message.replace("NoSubwooferError: ", ""));
-      } else if (error2.message.startsWith("SubwooferError")) {
-        console.error(error2.message.replace("SubwooferError: ", ""));
-      } else {
-        console.warn("Unable to detect REW!");
-        state.dontStart = true;
-      }
-      return;
-    }
-  }
+  // src/config.js
+  var endFrequency = 282;
+  var maxBoost = 0;
+  var perSpeakerXOSearchRange = {
+    "BDL": [],
+    //Left & Right pair
+    "C": [],
+    "CH": [],
+    "FDL": [],
+    //Left & Right pair
+    "FHL": [],
+    //Left & Right pair
+    "FL": [],
+    //Left & Right pair
+    "FWL": [],
+    //Left & Right pair
+    "RHL": [],
+    //Left & Right pair
+    "SB": [],
+    "SBL": [],
+    //Left & Right pair
+    "SDL": [],
+    //Left & Right pair
+    "SLA": [],
+    //Left & Right pair
+    "SHL": [],
+    //Left & Right pair
+    "TFL": [],
+    //Left & Right pair
+    "TML": [],
+    //Left & Right pair
+    "TRL": [],
+    //Left & Right pair
+    "TS": [],
+    /////////////////////////////////////////////////////////// Usage samples ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    "XYL": [40],
+    // will set crossover for speaker XYL & XYR at 40Hz,
+    "XWL": [40, 90],
+    // will set XO search range for speaker pair XWL & XWR from 40Hz to 90Hz. Best result among 40, 60, 80 and 90Hz will be selected,
+    "XY": [110, 110],
+    // will set crossover for speaker XY at 110Hz,
+    "Q": [120]
+    // will set speaker Q crossover frequency at 120Hz.  
+  };
+  var CenterSpeakerDistance = 0;
 
   // src/signal.js
-  async function rmsVolume2(noM) {
-    const measurements2 = await fetch_mREW();
-    const mCount = Object.keys(measurements2).length;
+  async function rmsVolume(noM) {
+    const measurements = await fetch_mREW();
+    const mCount = Object.keys(measurements).length;
     await postNext("Smooth", noM, { smoothing: "None" });
     await fetchSafe("target-level", noM, state.targetLevel);
     await postNext("Generate target measurement", noM);
@@ -17712,8 +17434,8 @@
     const bytes = Uint8Array.from(atob(freqResponse.magnitude), (c) => c.charCodeAt(0));
     const buffer = bytes.buffer;
     const data = new DataView(buffer);
-    for (let k3 = k12; k3 <= k22; k3++) {
-      const splSub = data.getFloat32(k3 * 4);
+    for (let k = k12; k <= k22; k++) {
+      const splSub = data.getFloat32(k * 4);
       subArray.push(splSub);
     }
     const targetArray = [];
@@ -17727,8 +17449,8 @@
     const bytesTarget = Uint8Array.from(atob(state.targetResponse.magnitude), (c) => c.charCodeAt(0));
     const bufferTarget = bytesTarget.buffer;
     const dataTarget = new DataView(bufferTarget);
-    for (let k3 = k12; k3 <= k22; k3++) {
-      const splTarget = dataTarget.getFloat32(k3 * 4);
+    for (let k = k12; k <= k22; k++) {
+      const splTarget = dataTarget.getFloat32(k * 4);
       state.targetArray.push(splTarget);
     }
     function calculateRmsError(offset) {
@@ -17743,9 +17465,9 @@
     let bestOffset = null;
     let lowestRmsError = Infinity;
     for (let offset = -12.5; offset <= 12.5; offset += 0.5) {
-      const rmsError3 = calculateRmsError(offset);
-      if (rmsError3 < lowestRmsError) {
-        lowestRmsError = rmsError3;
+      const rmsError2 = calculateRmsError(offset);
+      if (rmsError2 < lowestRmsError) {
+        lowestRmsError = rmsError2;
         bestOffset = offset;
       }
     }
@@ -17758,7 +17480,92 @@
     console.log(`Subwoofer - applied adjustment: ${bestOffset}dB.`);
     return bestOffset;
   }
-  async function rmsError2(noM) {
+  async function subIRP(noM) {
+    let startFreq2, ppo2;
+    const measurements = await fetch_mREW();
+    const mCount = Object.keys(measurements).length;
+    await postNext("Smooth", noM, { smoothing: "None" });
+    await postSafe(`${baseUrl}/${noM}/filters`, {
+      filters: [{
+        "index": 21,
+        "type": "Low pass",
+        "enabled": true,
+        "isAuto": false,
+        "frequency": 120,
+        "shape": "L-R",
+        "slopedBPerOctave": 24
+      }]
+    }, "Filters set");
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    await postNext("Generate filters measurement", noM);
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    await postNext("Add SPL offset", mCount + 1, { offset: state.targetLevel });
+    await postSafe(`${baseUrl}/${noM}/filters`, {
+      filters: [{
+        "index": 21,
+        "type": "Low pass",
+        "enabled": true,
+        "isAuto": false,
+        "frequency": 250,
+        "shape": "L-R",
+        "slopedBPerOctave": 24
+      }]
+    }, "Filters set");
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    await postNext("Generate filters measurement", noM);
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    await postNext("Add SPL offset", mCount + 2, { offset: state.targetLevel });
+    const magnitudeArray = [];
+    const spResponse = await fetchSafe("frequency-response?smoothing=1%2F48&ppo=96", noM);
+    startFreq2 = spResponse.startFreq;
+    let k12 = 25, k22 = 250;
+    ppo2 = spResponse.ppo;
+    k12 = Math.round(Math.log2(k12 / startFreq2) * ppo2);
+    k22 = Math.round(Math.log2(k22 / startFreq2) * ppo2);
+    const bytes1 = Uint8Array.from(atob(spResponse.magnitude), (c) => c.charCodeAt(0));
+    const buffer1 = bytes1.buffer;
+    const data1 = new DataView(buffer1);
+    for (let k = k12; k <= k22; k++) {
+      const spMagnitude = data1.getFloat32(k * 4);
+      magnitudeArray.push(spMagnitude);
+    }
+    let minSum = Infinity, sum, lpfCalculated, isRP = false;
+    for (let i2 = mCount + 1; i2 <= mCount + 2; i2++) {
+      sum = 0;
+      const lpfArray = [];
+      const lpfResponse = await fetchSafe("frequency-response?smoothing=1%2F48&ppo=96", i2);
+      startFreq2 = lpfResponse.startFreq;
+      k12 = 25;
+      k22 = 250;
+      ppo2 = lpfResponse.ppo;
+      k12 = Math.round(Math.log2(k12 / startFreq2) * ppo2);
+      k22 = Math.round(Math.log2(k22 / startFreq2) * ppo2);
+      const bytesLPF = Uint8Array.from(atob(lpfResponse.magnitude), (c) => c.charCodeAt(0));
+      const bufferLPF = bytesLPF.buffer;
+      const dataLPF = new DataView(bufferLPF);
+      let t = 0;
+      for (let k = k12; k <= k22; k++) {
+        const lpfMagnitude = dataLPF.getFloat32(k * 4);
+        const dif = magnitudeArray[t] - lpfMagnitude;
+        sum += dif * dif;
+        t++;
+      }
+      const meanOfSquares = sum / t;
+      const rmsE = Math.sqrt(meanOfSquares);
+      if (rmsE < minSum) {
+        minSum = rmsE;
+        lpfCalculated = i2;
+      }
+    }
+    lpfCalculated === mCount + 1 ? lpfCalculated = 120 : lpfCalculated = 250;
+    if (lpfCalculated === 120) {
+      isRP = true;
+    }
+    await postDelete(mCount + 2);
+    await postDelete(mCount + 1);
+    return isRP;
+  }
+  async function rmsError(noM) {
     const freqResponse = await fetchSafe("frequency-response?smoothing=1%2F48&ppo=96", noM);
     let startFreq2 = freqResponse.startFreq;
     let k12 = 20, k22 = 250;
@@ -17769,8 +17576,8 @@
     const buffer = bytes.buffer;
     const data = new DataView(buffer);
     let aSumArray = [];
-    for (let k3 = k12; k3 <= k22; k3++) {
-      const splSum = data.getFloat32(k3 * 4);
+    for (let k = k12; k <= k22; k++) {
+      const splSum = data.getFloat32(k * 4);
       aSumArray.push(splSum);
     }
     ;
@@ -17784,10 +17591,47 @@
       }
     }
     const meanOfSquares = count > 0 ? sumOfSquares / count : 0;
-    const rmsError3 = Math.sqrt(meanOfSquares);
-    return rmsError3;
+    const rmsError2 = Math.sqrt(meanOfSquares);
+    return rmsError2;
   }
-  async function genSub2(freq, i2 = null) {
+  async function calcEP(mNo, centerFreq) {
+    const measurements = await fetch_mREW();
+    const mCount = Object.keys(measurements).length;
+    await postNext("Excess phase version", mNo, {
+      "include cal": true,
+      "append lf tail": false,
+      "append hf tail": false,
+      "frequency warping": false,
+      "replicate data": false
+    });
+    await postNext("Smooth", mCount + 1, { smoothing: "Psy" });
+    const phaseArray = [];
+    const epResponse = await fetchSafe("frequency-response", mCount + 1);
+    const startFreq2 = epResponse.startFreq;
+    const oct = Math.pow(2, Math.sqrt(2) / 2);
+    let k12 = centerFreq / oct, k22 = centerFreq * oct;
+    if ("freqStep" in epResponse) {
+      const freqStep2 = epResponse.freqStep;
+      k12 = Math.round((k12 - startFreq2) / freqStep2);
+      k22 = Math.round((k22 - startFreq2) / freqStep2);
+    } else if ("ppo" in epResponse) {
+      const ppo2 = epResponse.ppo;
+      k12 = Math.round(Math.log2(k12 / startFreq2) * ppo2);
+      k22 = Math.round(Math.log2(k22 / startFreq2) * ppo2);
+    }
+    const bytes = Uint8Array.from(atob(epResponse.phase), (c) => c.charCodeAt(0));
+    const buffer = bytes.buffer;
+    const data = new DataView(buffer);
+    for (let k = k12; k <= k22; k++) {
+      const xsPhase = data.getFloat32(k * 4);
+      phaseArray.push(xsPhase);
+    }
+    let sum = phaseArray.reduce((acc, val) => acc + Math.abs(val), 0);
+    sum /= k22 - k12 + 1;
+    await postDelete(mCount + 1);
+    return sum;
+  }
+  async function genSub(freq, i2 = null) {
     if (i2 === null) {
       i2 = state.nSpeakers * 3;
     }
@@ -17814,10 +17658,36 @@
     await postNext("Generate predicted measurement", i2);
     await new Promise((resolve) => setTimeout(resolve, speedDelay));
   }
+  async function genSpeaker(i2, freq) {
+    let slope;
+    freq === 15.75 ? slope = 6 : slope = 12;
+    await postSafe(`${baseUrl}/${i2}/filters`, {
+      filters: [{
+        "index": 21,
+        "type": "High pass",
+        "enabled": true,
+        "isAuto": false,
+        "frequency": freq,
+        "shape": "BU",
+        "slopedBPerOctave": slope
+      }]
+    }, "Filters set");
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    await postSafe(`${baseUrl}/${i2}/filters`, {
+      filters: [{
+        "index": 22,
+        "type": "None"
+      }]
+    }, "Filters set");
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    await postNext("Generate predicted measurement", i2);
+    await new Promise((resolve) => setTimeout(resolve, speedDelay));
+  }
 
   // src/alignment.js
   async function alignCenter() {
     let normDev = Infinity, centerDelay, centerInv, centerPossible = false;
+    let xo2, frontLFE, normXO, isPossible2, requiredDelay2, isInverted2, excessPhase2;
     console.log(`Subwoofer(s) will now be aligned to 'Center' speaker...`);
     let indexC = 0;
     for (let i2 = state.nSpeakers + 2; i2 < state.nSpeakers * 3 - 2; i2 += 2) {
@@ -17829,9 +17699,9 @@
       }
     }
     if (indexC != 0) {
-      xo = state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "C")];
-      let firstIndex = state.freqIndex.indexOf(xo);
-      let lastIndex = state.freqIndex.indexOf(xo);
+      xo2 = state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "C")];
+      let firstIndex = state.freqIndex.indexOf(xo2);
+      let lastIndex = state.freqIndex.indexOf(xo2);
       if (firstIndex > 0) {
         firstIndex--;
       }
@@ -17875,17 +17745,17 @@
       for (let i2 = firstIndex; i2 <= lastIndex; i2++) {
         await genSpeaker(indexC, state.freqIndex[i2]);
         await genSub(state.freqIndex[i2]);
-        ({ isPossible, requiredDelay, isInverted, excessPhase } = await align4impulse2(state.nSpeakers * 3 + 2, state.nSpeakers * 3 + 3));
-        if (!isPossible) {
+        ({ isPossible: isPossible2, requiredDelay: requiredDelay2, isInverted: isInverted2, excessPhase: excessPhase2 } = await align4impulse(state.nSpeakers * 3 + 2, state.nSpeakers * 3 + 3));
+        if (!isPossible2) {
           console.info(`Crossover frequency: ${state.freqIndex[i2]}Hz, alignment not possible within delay limits!`);
         } else {
           centerPossible = true;
-          state.noInversion ? console.info(`Crossover frequency: ${state.freqIndex[i2]}Hz, required delay: ${-requiredDelay.toFixed(2)}ms, expected dip removal efficiency: ${(100 - excessPhase).toFixed(2)}%`) : console.info(`Crossover frequency: ${state.freqIndex[i2]}Hz, required delay: ${-requiredDelay.toFixed(2)}ms (subwoofer polarity inverted) , expected dip removal efficiency: ${(100 - excessPhase).toFixed(2)}%`);
-          if (excessPhase < normDev) {
-            normDev = excessPhase;
+          state.noInversion ? console.info(`Crossover frequency: ${state.freqIndex[i2]}Hz, required delay: ${-requiredDelay2.toFixed(2)}ms, expected dip removal efficiency: ${(100 - excessPhase2).toFixed(2)}%`) : console.info(`Crossover frequency: ${state.freqIndex[i2]}Hz, required delay: ${-requiredDelay2.toFixed(2)}ms (subwoofer polarity inverted) , expected dip removal efficiency: ${(100 - excessPhase2).toFixed(2)}%`);
+          if (excessPhase2 < normDev) {
+            normDev = excessPhase2;
             normXO = state.freqIndex[i2];
-            centerDelay = requiredDelay;
-            centerInv = isInverted;
+            centerDelay = requiredDelay2;
+            centerInv = isInverted2;
           }
         }
         ;
@@ -17905,8 +17775,139 @@
     }
     ;
   }
-  async function align4impulse2(ind1, ind2) {
-    let isInverted2 = false, isPossible2 = false, requiredDelay2 = NaN, excessPhase2 = Infinity, bestFreq = NaN, checkFreq2;
+  async function epAlign(indices, final) {
+    const epIndices = [], epShifts = [];
+    for (let j = 0; j < indices.length; j++) {
+      const index = indices[j];
+      await postNext("Smooth", index, { smoothing: "None" });
+      await postSafe(`http://localhost:4735/measurements/${index}/target-settings`, { shape: "None" }, "Update processed");
+      await postSafe(`http://localhost:4735/measurements/${index}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+      const epImpulse = await postNext2("Excess phase version", index, {
+        "include cal": true,
+        "append lf tail": false,
+        "append hf tail": false,
+        "frequency warping": false,
+        "replicate data": false
+      });
+      epIndices.push(Object.keys(epImpulse.results)[0]);
+      const key = parseInt(epIndices[j]);
+      const name = epImpulse.results[key]["New measurement"];
+      if (name.includes("SW")) {
+        await postSafe(`${baseUrl}/${key}/filters`, {
+          filters: [{
+            "index": 21,
+            "type": "Low pass",
+            "enabled": true,
+            "isAuto": false,
+            "frequency": 50,
+            "shape": "BU",
+            "slopedBPerOctave": 12
+          }]
+        }, "Filters set");
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postSafe(`${baseUrl}/${key}/filters`, {
+          filters: [{
+            "index": 22,
+            "type": "High pass",
+            "enabled": true,
+            "isAuto": false,
+            "frequency": 50,
+            "shape": "BU",
+            "slopedBPerOctave": 12
+          }]
+        }, "Filters set");
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postSafe(`http://localhost:4735/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
+        await postSafe(`http://localhost:4735/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postNext("Generate predicted measurement", key);
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postDelete(key);
+      } else {
+        await postSafe(`${baseUrl}/${key}/filters`, {
+          filters: [{
+            "index": 21,
+            "type": "High pass",
+            "enabled": true,
+            "isAuto": false,
+            "frequency": 5e3,
+            "shape": "BU",
+            "slopedBPerOctave": 12
+          }]
+        }, "Filters set");
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postSafe(`${baseUrl}/${key}/filters`, {
+          filters: [{
+            "index": 22,
+            "type": "Low pass",
+            "enabled": true,
+            "isAuto": false,
+            "frequency": 5e3,
+            "shape": "BU",
+            "slopedBPerOctave": 12
+          }]
+        }, "Filters set");
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postSafe(`http://localhost:4735/measurements/${key}/target-settings`, { shape: "None" }, "Update processed");
+        await postSafe(`http://localhost:4735/measurements/${key}/room-curve-settings`, { addRoomCurve: false }, "Update processed");
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postNext("Generate predicted measurement", key);
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+        await postDelete(key);
+        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+      }
+    }
+    await postNext("Remove IR delays", epIndices);
+    const sansSubs = epIndices.slice(0, -state.numSub);
+    if (final) {
+      await postNext("Cross corr align", sansSubs);
+    } else {
+      await postNext("Cross corr align", epIndices);
+    }
+    for (let j = 0; j < epIndices.length; j++) {
+      const epShift = await fetch_mREW(epIndices[j]);
+      epShifts[j] = parseFloat(epShift.cumulativeIRShiftSeconds);
+    }
+    let minShiftPeak = Infinity, maxShiftPeak = -Infinity;
+    let minShiftStart = Infinity, maxShiftStart = -Infinity;
+    if (!final) {
+      for (let j = 0; j < epIndices.length; j++) {
+        const epResult = await fetch_mREW(epIndices[j]);
+        const shiftPeak = parseFloat(epResult.timeOfIRPeakSeconds);
+        const shiftStart = parseFloat(epResult.timeOfIRStartSeconds);
+        minShiftPeak = Math.min(minShiftPeak, shiftPeak);
+        maxShiftPeak = Math.max(maxShiftPeak, shiftPeak);
+        minShiftStart = Math.min(minShiftStart, shiftStart);
+        maxShiftStart = Math.max(maxShiftStart, shiftStart);
+      }
+      ;
+    } else {
+      for (let j = 0; j < sansSubs.length; j++) {
+        const epResult = await fetch_mREW(sansSubs[j]);
+        const shiftPeak = parseFloat(epResult.timeOfIRPeakSeconds);
+        const shiftStart = parseFloat(epResult.timeOfIRStartSeconds);
+        minShiftPeak = Math.min(minShiftPeak, shiftPeak);
+        maxShiftPeak = Math.max(maxShiftPeak, shiftPeak);
+        minShiftStart = Math.min(minShiftStart, shiftStart);
+        maxShiftStart = Math.max(maxShiftStart, shiftStart);
+      }
+      ;
+    }
+    ;
+    const usePeak = Math.abs(maxShiftPeak - minShiftPeak) < Math.abs(maxShiftStart - minShiftStart);
+    for (let j = 0; j < epIndices.length; j++) {
+      const { timeOfIRPeakSeconds, timeOfIRStartSeconds } = await fetch_mREW(epIndices[j]);
+      const shift = (usePeak ? parseFloat(timeOfIRPeakSeconds) : parseFloat(timeOfIRStartSeconds)) + epShifts[j];
+      await postNext2("Offset t=0", indices[j], { offset: shift, unit: "seconds" });
+    }
+    for (let j = epIndices.length - 1; j >= 0; j--) {
+      await postDelete(epIndices[j]);
+      await new Promise((resolve) => setTimeout(resolve, speedDelay));
+    }
+    return;
+  }
+  async function align4impulse(ind1, ind2) {
+    let isInverted2 = false, isPossible2 = false, requiredDelay2 = NaN, excessPhase2 = Infinity, bestFreq = NaN, checkFreq;
     let loDelay = state.maxNegative;
     let hiDelay = state.maxPositive;
     let tempLo = 0;
@@ -17933,10 +17934,10 @@
     await postSafe("http://localhost:4735/alignment-tool/max-negative-delay", -hiDelay, "Maximum negative delay set to");
     await postSafe("http://localhost:4735/alignment-tool/max-positive-delay", -loDelay, "Maximum positive delay set to");
     console.info("Deep searching alignment options...");
-    for (checkFreq2 = 20; checkFreq2 <= 250; checkFreq2++) {
-      const postAlignResult = await postAlign("Align IRs", checkFreq2);
+    for (checkFreq = 20; checkFreq <= 250; checkFreq++) {
+      const postAlignResult = await postAlign("Align IRs", checkFreq);
       if (postAlignResult.message === "Delay too large" && state.previousDelay != postAlignResult.delay) {
-        console.infoUpdate(`Skipping possible alignment at ${checkFreq2}Hz - required delay is outside limits: ${-postAlignResult.delay}ms`);
+        console.infoUpdate(`Skipping possible alignment at ${checkFreq}Hz - required delay is outside limits: ${-postAlignResult.delay}ms`);
         state.previousDelay = postAlignResult.delay;
         continue;
       }
@@ -17962,8 +17963,8 @@
       const buffer = bytes.buffer;
       const data = new DataView(buffer);
       let aSumArray = [];
-      for (let k3 = k12; k3 <= k22; k3++) {
-        const splSum = data.getFloat32(k3 * 4);
+      for (let k = k12; k <= k22; k++) {
+        const splSum = data.getFloat32(k * 4);
         aSumArray.push(splSum);
       }
       ;
@@ -17977,10 +17978,10 @@
         }
       }
       const meanOfSquares = count > 0 ? sumOfSquares / count : 0;
-      const rmsError3 = Math.sqrt(meanOfSquares);
-      if (rmsError3 < excessPhase2) {
-        excessPhase2 = rmsError3;
-        bestFreq = checkFreq2;
+      const rmsError2 = Math.sqrt(meanOfSquares);
+      if (rmsError2 < excessPhase2) {
+        excessPhase2 = rmsError2;
+        bestFreq = checkFreq;
       }
     }
     if (isPossible2) {
@@ -17991,10 +17992,91 @@
     }
     return { isPossible: isPossible2, requiredDelay: requiredDelay2, isInverted: isInverted2, excessPhase: excessPhase2 };
   }
+  async function alignMsub(ind1, ind2, loDelay, hiDelay) {
+    let isInverted2 = false, isPossibleI = false, requiredDelayI = NaN, sumIndex = null, samples, checkFreq;
+    await postSafe("http://localhost:4735/alignment-tool/index-a", ind1, "selected as measurement A");
+    await postSafe("http://localhost:4735/alignment-tool/index-b", ind2, "selected as measurement B");
+    await postAlign("Reset all");
+    await postSafe("http://localhost:4735/alignment-tool/mode", "Impulse", "Mode set");
+    await postSafe("http://localhost:4735/alignment-tool/max-negative-delay", loDelay, "Maximum negative delay set to");
+    await postSafe("http://localhost:4735/alignment-tool/max-positive-delay", hiDelay, "Maximum positive delay set to");
+    let magSum, maxSum = -Infinity, bestFreq = NaN;
+    console.info("Commencing in-depth frequency and SPL analysis...");
+    for (checkFreq = 20; checkFreq <= 250; checkFreq++) {
+      magSum = 0;
+      const postAlignResult = await postAlign("Align IRs", checkFreq);
+      if (postAlignResult.message === "Delay too large" && state.previousDelay != postAlignResult.delay) {
+        console.infoUpdate(`Skipping possible alignment @ ${checkFreq}Hz - required delay is outside limits: ${-postAlignResult.delay}ms`);
+        state.previousDelay = postAlignResult.delay;
+        continue;
+      }
+      isInverted2 = await fetchAlign("invert-b");
+      if (state.noInversion && isInverted2) {
+        isPossibleI = false;
+        continue;
+      }
+      ;
+      isPossibleI = true;
+      const tempSum = await fetchAlign("aligned-frequency-response");
+      let startFreq2 = tempSum.startFreq;
+      let k12 = 30, k22 = 80;
+      if ("freqStep" in tempSum) {
+        let freqStep2 = tempSum.freqStep;
+        k12 = Math.round((k12 - startFreq2) / freqStep2);
+        k22 = Math.round((k22 - startFreq2) / freqStep2);
+      } else if ("ppo" in tempSum) {
+        const ppo2 = tempSum.ppo;
+        k12 = Math.round(Math.log2(k12 / startFreq2) * ppo2);
+        k22 = Math.round(Math.log2(k22 / startFreq2) * ppo2);
+      }
+      ;
+      samples = k22 - k12 + 1;
+      const bytes = Uint8Array.from(atob(tempSum.magnitude), (c) => c.charCodeAt(0));
+      const buffer = bytes.buffer;
+      const data = new DataView(buffer);
+      for (let k = k12; k <= k22; k++) {
+        const sumMagnitude = data.getFloat32(k * 4);
+        magSum += sumMagnitude;
+      }
+      if (magSum > maxSum) {
+        maxSum = magSum;
+        bestFreq = checkFreq;
+      }
+    }
+    if (isPossibleI) {
+      const postAlignResult = await postAlign("Align IRs", bestFreq);
+      const delayB = await fetchAlign("delay-b");
+      requiredDelayI = -parseFloat(delayB);
+      isInverted2 = await fetchAlign("invert-b");
+      console.info(`Optimal alignment: @${bestFreq}Hz, ${maxSum / samples}dB, isInverted: ${isInverted2}, required delay: ${(-1 * requiredDelayI).toFixed(2)}ms`);
+      const measurements = await fetch_mREW();
+      const mCount = Object.keys(measurements).length;
+      const alignedSum = await postAlign("Aligned sum");
+      const parsed = JSON.parse(alignedSum.message);
+      let key = Object.keys(parsed.results)[0];
+      sumIndex = parseInt(key);
+    }
+    return { isPossibleI, requiredDelayI, isInverted: isInverted2, sumIndex };
+  }
 
   // src/crossover.js
+  var startFreq;
+  var k1;
+  var k2;
+  var ppo;
+  var freqStep;
+  var oCount;
+  var i;
+  var minXO;
+  var maxXO;
+  var xo;
+  var pairName;
+  var isPossible;
+  var requiredDelay;
+  var isInverted;
+  var excessPhase;
   async function aceXO() {
-    let subMoves = 0, inversion = false, lmDev = Infinity, lmXO, lmDelay = 0, lmInv = false, normDev = Infinity, normXO2, normDelay = 0, normInv = false, frontLFE2 = Infinity, centerAligned = false;
+    let subMoves = 0, inversion = false, lmDev = Infinity, lmXO, lmDelay = 0, lmInv = false, normDev = Infinity, normXO, normDelay = 0, normInv = false, frontLFE = Infinity, centerAligned = false;
     await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
     await fetchSafe("target-level", 1, state.targetLevel);
     await postNext("Generate target measurement", 1);
@@ -18018,8 +18100,8 @@
     const bytesTarget = Uint8Array.from(atob(state.targetResponse.magnitude), (c) => c.charCodeAt(0));
     const bufferTarget = bytesTarget.buffer;
     const dataTarget = new DataView(bufferTarget);
-    for (let k3 = k1; k3 <= k2; k3++) {
-      const splTarget = dataTarget.getFloat32(k3 * 4);
+    for (let k = k1; k <= k2; k++) {
+      const splTarget = dataTarget.getFloat32(k * 4);
       state.targetArray.push(splTarget);
     }
     let indexFL = 0;
@@ -18034,7 +18116,7 @@
     await postNext("Vector average", [indexFL, indexFL + 2]);
     if (indexFL === 0) {
       console.error("Optimization cannot continue without 'Front' speakers!");
-      throw new error();
+      throw new Error("Optimization cannot continue without 'Front' speakers!");
     }
     let firstIndex, lastIndex;
     if (!state.forceWeak) {
@@ -18064,9 +18146,9 @@
       }
       ;
       if (firstIndex === 0 || state.forceLarge) {
-        frontLFE2 = await rmsError2(state.nSpeakers * 3 + 2);
+        frontLFE = await rmsError(state.nSpeakers * 3 + 2);
         console.info(`Analysing 'Large / Full range' front main speakers in 'Subwoofer Mode: LFE' setting:`);
-        console.info(`Expected dip removal efficiency: ${(100 - frontLFE2).toFixed(2)}%`);
+        console.info(`Expected dip removal efficiency: ${(100 - frontLFE).toFixed(2)}%`);
         ({ lmDev, lmXO, lmDelay, lmInv } = await largeSpeakers(state.nSpeakers * 3 + 2));
         state.solution ? console.info(`Large / Full range speakers 'LFE + Main' mode, subwoofer lpf: ${lmXO}Hz, expected dip removal efficiency: ${(100 - lmDev).toFixed(2)}%`) : console.info(`Large / Full range speakers 'LFE + Main' mode, no solutions found!`);
         firstIndex++;
@@ -18087,7 +18169,7 @@
         throw new Error(`Custom setting '${range[0]}' is not a valid crossover frequency!`);
       }
       ;
-      frontLFE2 = Infinity;
+      frontLFE = Infinity;
       lmDev = Infinity;
     }
     if (range.length >= 2 && !state.forceLarge) {
@@ -18099,14 +18181,14 @@
       if (lastIndex < firstIndex) {
         lastIndex = firstIndex;
       }
-      frontLFE2 = Infinity;
+      frontLFE = Infinity;
       lmDev = Infinity;
     }
     ;
     let smallPossible = false;
     for (let i2 = firstIndex; i2 <= lastIndex; i2++) {
       await genSpeaker(state.nSpeakers * 3 + 2, state.freqIndex[i2]);
-      await genSub2(state.freqIndex[i2]);
+      await genSub(state.freqIndex[i2]);
       await postNext("Add SPL offset", state.nSpeakers * 3 + 4, { offset: 6 });
       ({ isPossible, requiredDelay, isInverted, excessPhase } = await align4impulse(state.nSpeakers * 3 + 3, state.nSpeakers * 3 + 4));
       if (!isPossible) {
@@ -18116,7 +18198,7 @@
         smallPossible = true;
         if (excessPhase < normDev) {
           normDev = excessPhase;
-          normXO2 = state.freqIndex[i2];
+          normXO = state.freqIndex[i2];
           normDelay = requiredDelay;
           normInv = isInverted;
           state.solution = true;
@@ -18141,7 +18223,7 @@
       state.forceSmall = false;
     }
     if (state.forceSmall && smallPossible) {
-      frontLFE2 = Infinity;
+      frontLFE = Infinity;
       lmDev = Infinity;
       state.forceLarge = false;
     }
@@ -18150,7 +18232,7 @@
       normDev = Infinity;
     }
     ;
-    const winner = Math.min(frontLFE2, lmDev, normDev);
+    const winner = Math.min(frontLFE, lmDev, normDev);
     if (state.solution || smallPossible) {
       console.log("Selected optimal set up:");
       if (state.forceSmall || state.forceLarge || state.forceCentre || state.forceWeak) {
@@ -18165,9 +18247,9 @@
         normDev = winner;
       }
       if (normDev === winner && smallPossible) {
-        console.log(`Front speakers will be set to 'Small' and crossed over with the subwoofer(s) at ${normXO2}Hz`);
-        state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FL")] = normXO2;
-        state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FR")] = normXO2;
+        console.log(`Front speakers will be set to 'Small' and crossed over with the subwoofer(s) at ${normXO}Hz`);
+        state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FL")] = normXO;
+        state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FR")] = normXO;
         subMoves = normDelay / 1e3;
         inversion = normInv;
       } else if (lmDev === winner && state.solution) {
@@ -18181,7 +18263,7 @@
         state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FR")] = "L";
         subMoves = lmDelay / 1e3;
         inversion = lmInv;
-      } else if (frontLFE2 === winner) {
+      } else if (frontLFE === winner) {
         state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FL")] = "L";
         state.customCrossover[Object.keys(state.commandId).find((key) => state.commandId[key] === "FR")] = "L";
         console.warn(`Front speakers will be set to 'Large / Full range', set 'Subwoofer Mode' to 'LFE' in the AVR`);
@@ -18339,16 +18421,16 @@
         ;
         for (let j = firstIndex2; j <= lastIndex2; j++) {
           await genSpeaker(state.nSpeakers * 3 + 2, state.freqIndex[j]);
-          await genSub2(state.freqIndex[j]);
+          await genSub(state.freqIndex[j]);
           await postNext("Add SPL offset", state.nSpeakers * 3 + 4, { offset: 6 });
           await postNext("Arithmetic", [state.nSpeakers * 3 + 4, state.nSpeakers * 3 + 3], { function: "A + B" });
-          const error2 = await rmsError2(state.nSpeakers * 3 + 5);
-          console.info(`Crossover frequency: ${state.freqIndex[j]}Hz, expected dip removal efficiency: ${(100 - error2).toFixed(2)}%`);
+          const error = await rmsError(state.nSpeakers * 3 + 5);
+          console.info(`Crossover frequency: ${state.freqIndex[j]}Hz, expected dip removal efficiency: ${(100 - error).toFixed(2)}%`);
           await postDelete(state.nSpeakers * 3 + 5);
           await postDelete(state.nSpeakers * 3 + 4);
           await postDelete(state.nSpeakers * 3 + 3);
-          if (error2 < minSum) {
-            minSum = error2;
+          if (error < minSum) {
+            minSum = error;
             state.customCrossover[oCount] = state.freqIndex[j];
             state.customCrossover[oCount + 1] = state.freqIndex[j];
           }
@@ -18410,15 +18492,15 @@
         }
         for (let j = firstIndex2; j <= lastIndex2; j++) {
           await genSpeaker(state.nSpeakers * 3 + 2, state.freqIndex[j]);
-          await genSub2(state.freqIndex[j]);
+          await genSub(state.freqIndex[j]);
           await postNext("Arithmetic", [state.nSpeakers * 3 + 4, state.nSpeakers * 3 + 3], { function: "A + B" });
-          const error2 = await rmsError2(state.nSpeakers * 3 + 5);
-          console.info(`Crossover frequency: ${state.freqIndex[j]}Hz, expected dip removal efficiency: ${(100 - error2).toFixed(2)}%`);
+          const error = await rmsError(state.nSpeakers * 3 + 5);
+          console.info(`Crossover frequency: ${state.freqIndex[j]}Hz, expected dip removal efficiency: ${(100 - error).toFixed(2)}%`);
           await postDelete(state.nSpeakers * 3 + 5);
           await postDelete(state.nSpeakers * 3 + 4);
           await postDelete(state.nSpeakers * 3 + 3);
-          if (error2 < minSum) {
-            minSum = error2;
+          if (error < minSum) {
+            minSum = error;
             state.customCrossover[oCount] = state.freqIndex[j];
           }
           ;
@@ -18437,9 +18519,9 @@
     }
     ;
     console.warn("Changing the above crossover frequencies manually in the receiver is not recommended, adjust them with Evo per speaker XO customization options inside the script instead!");
-    if (winner === frontLFE2 || winner === lmDev) {
+    if (winner === frontLFE || winner === lmDev) {
       console.log("The settings below should be manually applied in the receiver's set up menu:");
-      if (winner === frontLFE2) {
+      if (winner === frontLFE) {
         console.warn("Please set 'Subwoofer Mode' to 'LFE' in your receiver!");
       } else {
         console.warn(`Please set 'Subwoofer Mode' to 'LFE + Main', set 'Bass extraction lpf' to ${lmXO}Hz in your receiver!`);
@@ -18468,7 +18550,7 @@
       }
     }
     for (let i2 = 1; i2 < state.freqLength - monoSub; i2++) {
-      await genSub2(state.freqIndex[i2]);
+      await genSub(state.freqIndex[i2]);
       ({ isPossible, requiredDelay, isInverted, excessPhase } = await align4impulse(ind, state.nSpeakers * 3 + 3));
       if (!isPossible) {
         console.info(`Subwoofer LPF frequency: ${state.freqIndex[i2]}Hz, alignment not possible within delay limits!`);
@@ -18487,6 +18569,275 @@
       await postDelete(state.nSpeakers * 3 + 3);
     }
     return { lmDev, lmXO, lmDelay, lmInv };
+  }
+  async function findXO(indX, mCount) {
+    let iXO, sum, minSum = Infinity, k;
+    await postNext("Smooth", indX, { smoothing: "None" });
+    const magnitudeArray = [];
+    const spResponse = await fetchSafe("frequency-response", indX);
+    let startFreq2 = spResponse.startFreq;
+    let k12 = 15.75, k22 = 250;
+    if ("freqStep" in spResponse) {
+      let freqStep2 = spResponse.freqStep;
+      k12 = Math.round((k12 - startFreq2) / freqStep2);
+      k22 = Math.round((k22 - startFreq2) / freqStep2);
+    } else if ("ppo" in spResponse) {
+      const ppo2 = spResponse.ppo;
+      k12 = Math.round(Math.log2(k12 / startFreq2) * ppo2);
+      k22 = Math.round(Math.log2(k22 / startFreq2) * ppo2);
+    }
+    ;
+    const bytes = Uint8Array.from(atob(spResponse.magnitude), (c) => c.charCodeAt(0));
+    const buffer = bytes.buffer;
+    const data = new DataView(buffer);
+    for (let k3 = k12; k3 <= k22; k3++) {
+      const spMagnitude = data.getFloat32(k3 * 4);
+      magnitudeArray.push(spMagnitude);
+    }
+    for (let i2 = state.nSpeakers * 3 + 2; i2 <= mCount; i2++) {
+      sum = 0;
+      const xoResponse = await fetchSafe("frequency-response", i2);
+      const bytesXo = Uint8Array.from(atob(xoResponse.magnitude), (c) => c.charCodeAt(0));
+      const bufferXo = bytesXo.buffer;
+      const dataXo = new DataView(bufferXo);
+      startFreq2 = xoResponse.startFreq;
+      k12 = 15.75;
+      k22 = 250;
+      if ("freqStep" in xoResponse) {
+        freqStep = xoResponse.freqStep;
+        k12 = Math.round((k12 - startFreq2) / freqStep);
+        k22 = Math.round((k22 - startFreq2) / freqStep);
+      } else if ("ppo" in xoResponse) {
+        const ppo2 = xoResponse.ppo;
+        k12 = Math.round(Math.log2(k12 / startFreq2) * ppo2);
+        k22 = Math.round(Math.log2(k22 / startFreq2) * ppo2);
+      }
+      ;
+      let t = 0;
+      for (let k3 = k12; k3 <= k22; k3++) {
+        const xoMagnitude = dataXo.getFloat32(k3 * 4);
+        if (magnitudeArray[t] > state.targetLevel) {
+          break;
+        }
+        const dif = magnitudeArray[t] - xoMagnitude;
+        sum += dif * dif;
+        t++;
+      }
+      if (t === 0) {
+        iXO = i2;
+        break;
+      }
+      const meanOfSquares = sum / t;
+      const rmsE = Math.sqrt(meanOfSquares);
+      if (rmsE < minSum) {
+        minSum = rmsE;
+        iXO = i2;
+      }
+    }
+    return iXO;
+  }
+  async function multipleSubs(configSub) {
+    let sumIndex, loDelay, hiDelay;
+    let isPossibleI = false, requiredDelayI = NaN, isInverted2 = false;
+    const alignmentResults = [];
+    let keeperDelay = new Array(state.numSub).fill(0);
+    let i1 = state.nSpeakers + configSub[0];
+    let i2 = state.nSpeakers + configSub[1];
+    const loDelay0 = state.msecMin - state.mSec[i1];
+    const hiDelay0 = 0;
+    loDelay = loDelay0 - (state.mSec[i2] - state.mSec[i1]) * (state.mSec[i2] < state.mSec[i1]);
+    hiDelay = hiDelay0 - (state.mSec[i2] - state.mSec[i1]) * (state.mSec[i2] > state.mSec[i1]);
+    let tempHi = 0;
+    let tempLo = 0;
+    const maxDelay = 6.00049999 / state.sOs * 1e3;
+    loDelay *= -1e3;
+    hiDelay *= -1e3;
+    if (loDelay > maxDelay) {
+      loDelay = maxDelay;
+    }
+    if (hiDelay < -maxDelay) {
+      hiDelay = -maxDelay;
+    }
+    if (loDelay < 0) {
+      tempLo = loDelay;
+      loDelay = 0;
+    }
+    if (hiDelay > 0) {
+      tempHi = hiDelay;
+      hiDelay = 0;
+    }
+    ({ isPossibleI, requiredDelayI, isInverted: isInverted2, sumIndex } = await alignMsub(i1, i2, hiDelay, loDelay));
+    if (tempLo < 0 && requiredDelayI < tempLo || tempHi > 0 && requiredDelayI > tempHi) {
+      isPossibleI = false;
+    }
+    alignmentResults.push({ isPossibleI, requiredDelayI, isInverted: isInverted2 });
+    if (!isPossibleI) {
+      return { alignmentResults, finalIndex: null };
+    }
+    keeperDelay[0] = 0;
+    keeperDelay[1] = requiredDelayI / 1e3;
+    for (let i3 = 2; i3 < configSub.length; i3++) {
+      i2 = state.nSpeakers + configSub[i3];
+      const minRequired = Math.max(...keeperDelay) - 6.00049999 / state.sOs;
+      const maxRequired = Math.min(...keeperDelay) + 6.00049999 / state.sOs;
+      loDelay = loDelay0 - (state.mSec[i2] - state.mSec[i1]) * (state.mSec[i2] < state.mSec[i1]);
+      hiDelay = hiDelay0 - (state.mSec[i2] - state.mSec[i1]) * (state.mSec[i2] > state.mSec[i1]);
+      loDelay = Math.max(loDelay, minRequired);
+      hiDelay = Math.min(hiDelay, maxRequired);
+      loDelay *= -1e3;
+      hiDelay *= -1e3;
+      tempLo = 0;
+      tempHi = 0;
+      if (loDelay < 0) {
+        tempLo = loDelay;
+        loDelay = 0;
+      }
+      if (hiDelay > 0) {
+        tempHi = hiDelay;
+        hiDelay = 0;
+      }
+      ({ isPossibleI, requiredDelayI, isInverted: isInverted2, sumIndex } = await alignMsub(sumIndex, i2, hiDelay, loDelay));
+      if (tempLo < 0 && requiredDelayI < tempLo || tempHi > 0 && requiredDelayI > tempHi) {
+        isPossibleI = false;
+      }
+      alignmentResults.push({ isPossibleI, requiredDelayI, isInverted: isInverted2 });
+      if (!isPossibleI) {
+        return { alignmentResults, finalIndex: null };
+      }
+      keeperDelay[i3] = requiredDelayI / 1e3;
+    }
+    return { alignmentResults, finalIndex: sumIndex };
+  }
+  async function tectonic() {
+    let isPossibleI = false, requiredDelayI = NaN, isInverted2 = false, excessPhaseI = NaN;
+    let maxSubVolume = 0, minSubVolume = 0;
+    for (let i2 = state.nSpeakers; i2 <= state.nSpeakers + state.numSub - 1; i2++) {
+      state.subLPF[i2 - state.nSpeakers] ? await genSub(250, i2) : await genSub(120, i2);
+    }
+    console.info("Matching subwoofer volumes...");
+    for (let i2 = state.nSpeakers; i2 <= state.nSpeakers + state.numSub - 1; i2++) {
+      console.info(`Subwoofer #${i2 - state.nSpeakers + 1}:`);
+      state.customLevel[i2] = await rmsVolume(i2);
+      if (state.customLevel[i2] < -12) {
+        console.warn(`SW${i2 - state.nSpeakers + 1} volume is too high and can only be decreased by -12dB (hardware limit). Optimization will not be optimal!`);
+        state.customLevel[i2] = -12;
+      }
+      ;
+      if (state.customLevel[i2] > 12) {
+        console.warn(`SW${i2 - state.nSpeakers + 1} volume is too low and can only be increased by +12dB (hardware limit). Optimization will not be optimal!`);
+        state.customLevel[i2] = 12;
+      }
+      ;
+      if (state.customLevel[i2] > maxSubVolume) {
+        maxSubVolume = state.customLevel[i2];
+      }
+      ;
+      if (state.customLevel[i2] < minSubVolume) {
+        minSubVolume = state.customLevel[i2];
+      }
+    }
+    state.subLO -= minSubVolume;
+    state.subHI -= maxSubVolume;
+    for (let i2 = state.nSpeakers + 2 * state.numSub - 1; i2 > state.nSpeakers + state.numSub - 1; i2--) {
+      await postDelete(i2);
+    }
+    let finalIndex;
+    console.info("Aligning multiple subs between each other for best bass performance...");
+    const subOrders = {
+      2: [[0, 1], [1, 0]],
+      3: [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]],
+      4: [
+        [0, 1, 2, 3],
+        [0, 1, 3, 2],
+        [0, 2, 1, 3],
+        [0, 2, 3, 1],
+        [0, 3, 1, 2],
+        [0, 3, 2, 1],
+        [1, 0, 2, 3],
+        [1, 0, 3, 2],
+        [1, 2, 0, 3],
+        [1, 2, 3, 0],
+        [1, 3, 0, 2],
+        [1, 3, 2, 0],
+        [2, 0, 1, 3],
+        [2, 0, 3, 1],
+        [2, 1, 0, 3],
+        [2, 1, 3, 0],
+        [2, 3, 0, 1],
+        [2, 3, 1, 0],
+        [3, 0, 1, 2],
+        [3, 0, 2, 1],
+        [3, 1, 0, 2],
+        [3, 1, 2, 0],
+        [3, 2, 0, 1],
+        [3, 2, 1, 0]
+      ]
+    };
+    const subOrder = subOrders[state.numSub];
+    let finalIndices = [];
+    let finalResults = [];
+    for (const configSub of subOrder) {
+      const result = await multipleSubs(configSub);
+      const { finalIndex: finalIndex2, alignmentResults } = result;
+      if (finalIndex2 === null) {
+        console.warn("No alignment possible for this configuration:", configSub);
+      } else {
+        console.info(`Sub array: [${configSub}]`);
+        finalIndices.push(finalIndex2);
+        finalResults.push(finalIndex2, configSub, alignmentResults);
+      }
+    }
+    if (finalIndices.every((element) => element === false)) {
+      console.warn("All attempts to align your subwoofers between each other have failed!");
+      console.error("Optimization cannot continue!");
+      console.log("Please identify the reason and fix excessive delays in one or more of your subs then repeat Audyssey calibration!");
+      throw new Error("Optimization cannot continue \u2014 unable to align subwoofers between each other.");
+    }
+    let bestEP = Infinity, bestI, iCount = 1, bestCount = null;
+    for (const index of finalIndices) {
+      if (index !== null) {
+        const epSum = await calcEP(index, 50);
+        if (epSum < bestEP) {
+          bestEP = epSum;
+          bestI = index;
+          bestCount = iCount;
+        }
+        console.info(`Configuration #${iCount} average bass region excess phase: ${epSum}\xB0`);
+        iCount++;
+      }
+    }
+    const targetIndex = finalResults.indexOf(bestI);
+    const configurationArray = finalResults[targetIndex + 1];
+    console.info(`Optimal selection: Configuration #${bestCount} [${configurationArray}] with ${bestEP.toFixed(2)}\xB0 average excess phase.`);
+    state.invertSub[state.nSpeakers + configurationArray[0]] = false;
+    for (let i2 = 0; i2 < state.numSub - 1; i2++) {
+      const requiredDelayIValue = finalResults[targetIndex + 2][i2].requiredDelayI;
+      const newsubI = state.nSpeakers + configurationArray[i2 + 1];
+      state.invertSub[newsubI] = finalResults[targetIndex + 2][i2].isInverted;
+      if (state.mSec[newsubI] + requiredDelayIValue / 1e3 < state.msecMinSub) {
+        state.msecMinSub = state.mSec[newsubI] + requiredDelayIValue / 1e3;
+      }
+      if (state.mSec[newsubI] + requiredDelayIValue / 1e3 > state.msecMaxSub) {
+        state.msecMaxSub = state.mSec[newsubI] + requiredDelayIValue / 1e3;
+      }
+      state.mSec[newsubI] = state.mSec[newsubI] + requiredDelayIValue / 1e3;
+    }
+    state.msecMinSub = Math.min(state.msecMinSub, state.mSec[state.nSpeakers + configurationArray[0]]);
+    state.msecMaxSub = Math.max(state.msecMaxSub, state.mSec[state.nSpeakers + configurationArray[0]]);
+    await fetch_mREW(bestI, "PUT", { title: "SW1o" });
+    await fetch_mREW(state.nSpeakers, "PUT", { title: "tempSub" });
+    const measurements = await fetch_mREW();
+    const mCount = Object.keys(measurements).length;
+    for (let i2 = mCount; i2 >= state.nSpeakers; i2--) {
+      const title = measurements[i2].title;
+      if (title != "SW1o") {
+        await postDelete(i2);
+      }
+    }
+    const splOffset = -state.numSub * 3;
+    await postNext("Add SPL offset", state.nSpeakers, { offset: splOffset });
+    state.maxNegative = (state.msecMin - state.msecMinSub) * 1e3;
+    state.maxPositive = (state.msecMax - state.msecMaxSub) * 1e3;
   }
 
   // src/filters.js
@@ -20775,8 +21126,7 @@
     const bytesSub = Uint8Array.from(atob(subResponse.magnitude), (c) => c.charCodeAt(0));
     const bufferSub = bytesSub.buffer;
     const dataSub = new DataView(bufferSub);
-    spSum = 0;
-    overLimit = false;
+    let spSum = 0, overLimit = false;
     for (let k3 = 0; k3 <= 681; k3++) {
       const subMagnitude = dataSub.getFloat32(k3 * 4);
       subArray.push([sfreqArray[k3], subMagnitude + subTarget[k3]]);
@@ -20790,7 +21140,7 @@
     const customTargetCurvePointsSub = subArray.map((point) => `{${point[0]}, ${point[1]}}`);
     const subChannel = state.jsonData.detectedChannels[state.nSpeakers - 1];
     subChannel.customTargetCurvePoints = customTargetCurvePointsSub;
-    k = 0;
+    let k = 0;
     for (let channel of state.jsonData.detectedChannels) {
       if (channel.commandId.startsWith("SW")) {
         const customDistanceValue = parseFloat(state.customDistance[state.nSpeakers]) + parseFloat(state.delayAdjustment[state.nSpeakers]) - parseFloat(channel.delayAdjustment);
@@ -20798,9 +21148,9 @@
         channel.customDistance = Math.round(parseFloat(customDistanceValue) * 100) / 100;
         channel.channelReport.isReversePolarity = state.subLPF[k];
         customLevelValue += spSum;
-        if (state.customLevel[i] < -12) {
-          extraNeeded = -(state.customLevel[i] + 12);
-          state.customLevel[i] = -12;
+        if (state.customLevel[state.nSpeakers] < -12) {
+          extraNeeded = -(state.customLevel[state.nSpeakers] + 12);
+          state.customLevel[state.nSpeakers] = -12;
           console.warn(`Subwoofer ${channel.commandId} volume is maxed out at -12dB, an additional ${extraNeeded.toFixed(1)}dB would be needed for full Audyssey auto-leveling compensation!`);
         } else {
           console.info(`Applied ${spSum.toFixed(1)}dB extra adjustment to speaker ${channel.commandId} to compensate for Audyssey auto-leveling.`);
@@ -20832,6 +21182,7 @@
   }
 
   // src/pipeline.js
+  var endFrequency2 = endFrequency;
   async function checkIfPaused() {
     if (state.isPaused) {
       console.warn("Optimization is paused!");
@@ -20853,11 +21204,11 @@
     disableGraph();
     const startTime = performance.now();
     document.getElementById("subwooferLPF").disabled = true;
-    document.getElementById("state.forceSmall").disabled = true;
-    document.getElementById("state.forceWeak").disabled = true;
-    document.getElementById("state.forceCentre").disabled = true;
-    document.getElementById("state.forceLarge").disabled = true;
-    document.getElementById("state.noInversion").disabled = true;
+    document.getElementById("forceSmall").disabled = true;
+    document.getElementById("forceWeak").disabled = true;
+    document.getElementById("forceCentre").disabled = true;
+    document.getElementById("forceLarge").disabled = true;
+    document.getElementById("noInversion").disabled = true;
     try {
       await sortREW();
       await checkIfPaused();
@@ -20913,20 +21264,20 @@
       console.info(`Do not forget to regularly check YT video comments for info on frequent issues and solutions:<a href="https://www.youtube.com/watch?v=lmZ5yV1-wMI" target="_blank">https://www.youtube.com/watch?v=lmZ5yV1-wMI</a>`);
       console.info(`*****************************************************************************************************************************************`);
       console.log("Enjoy your EVO'lved sound!");
-    } catch (error2) {
+    } catch (error) {
       enableGraph();
       disableBlock();
-      console.error(`Optimization failed: ${error2.message || error2}`);
+      console.error(`Optimization failed: ${error.message || error}`);
       document.getElementById("startButton").disabled = false;
       document.getElementById("pauseButton").disabled = true;
     }
   }
   async function bootUp() {
     console.info("Resetting IR windows, EQ target shape and room curve settings for all measurements");
-    const measurements2 = await fetch_mREW();
+    const measurements = await fetch_mREW();
     const titles = {};
     let titleIndices = {};
-    let mCount = Object.keys(measurements2).length;
+    let mCount = Object.keys(measurements).length;
     if (!mCount) {
       console.warn(`There are no measurements in REW!`);
       throw new Error(`Please upload your measurements and restart the script.`);
@@ -20992,7 +21343,7 @@
     console.log(`Calculated average target level: ${state.targetLevel.toFixed(2)}dB`);
     await new Promise((resolve) => setTimeout(resolve, speedDelay));
     await postNext("Generate target measurement", rmsID);
-    await postDelete2(rmsID);
+    await postDelete(rmsID);
     let indices = Array.from({ length: state.nSpeakers - 1 }, (_, i2) => i2 + 1);
     indices.push(state.nSpeakers + state.numSub);
     const volShift = await postNext("Align SPL", indices, { "frequencyHz": "1600", "spanOctaves": "5", "targetdB": "average" });
@@ -21019,8 +21370,8 @@
       let appliedAdjustments = currentAdjustments.map((adj) => roundToNearestHalf(adj));
       appliedAdjustments[i2] = 0;
       const errors = currentAdjustments.map((adj, idx) => adj - appliedAdjustments[idx]);
-      let totalAbsError = errors.reduce((sum, error2) => sum + Math.abs(error2), 0);
-      let totalDifference = errors.reduce((sum, error2) => sum + error2, 0);
+      let totalAbsError = errors.reduce((sum, error) => sum + Math.abs(error), 0);
+      let totalDifference = errors.reduce((sum, error) => sum + error, 0);
       totalAbsError = roundToPrecision(totalAbsError, 6);
       totalDifference = roundToPrecision(Math.abs(totalDifference), 6);
       if (totalAbsError < minTotalAbsError || roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && totalDifference < minTotalDifference || roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && roundToPrecision(totalDifference, 6) === roundToPrecision(minTotalDifference, 6) && deduction < bestDeduction) {
@@ -21037,26 +21388,26 @@
     }
     const targetBack = -volDelta - bestDeduction;
     await postNext("Add SPL offset", rmsID, { offset: targetBack });
-    await postDelete2(rmsID);
+    await postDelete(rmsID);
     state.targetLevel -= bestDeduction;
     console.log(`New target level optimized for minimum total speaker volume deviation: ${state.targetLevel.toFixed(2)}dB`);
     console.infoUpdate("Performing precision temporal alignment across the speaker array for optimal coherence...");
     const oIndices = Array.from({ length: state.nSpeakers + state.numSub - 1 }, (_, j) => j + 1);
     await epAlign(oIndices, true);
-    measurements = await fetch_mREW();
+    const measurements = await fetch_mREW();
     for (let i2 = 1; i2 <= state.nSpeakers + state.numSub - 1; i2++) {
       state.mSec[i2] = parseFloat(measurements[i2].cumulativeIRShiftSeconds);
     }
     console.infoUpdate(`Proprietary 'filtered excess phase' based impulse alignment optimization is complete!`);
-    const minM = Math.min(...mSec.slice(1, state.nSpeakers));
-    const maxM = Math.max(...mSec.slice(1, state.nSpeakers));
+    const minM = Math.min(...state.mSec.slice(1, state.nSpeakers));
+    const maxM = Math.max(...state.mSec.slice(1, state.nSpeakers));
     const limInsec = 6.00049999 / state.sOs;
     state.msecMin = maxM - limInsec;
     state.msecMax = minM + limInsec;
     for (let i2 = state.nSpeakers; i2 <= state.nSpeakers + state.numSub - 1; i2++) {
       const overDelay = state.mSec[i2] - state.msecMax;
       state.mSec[i2] -= overDelay;
-      await postNext22("Offset t=0", i2, { offset: -overDelay, unit: "seconds" });
+      await postNext2("Offset t=0", i2, { offset: -overDelay, unit: "seconds" });
     }
     ;
     if (state.numSub > 1) {
@@ -21091,7 +21442,7 @@
     if (state.numSub === 1) {
       state.customLevel[state.nSpeakers] = 0;
     }
-    const subOffset = await rmsVolume2(state.nSpeakers);
+    const subOffset = await rmsVolume(state.nSpeakers);
     for (let i2 = state.nSpeakers; i2 < state.nSpeakers + state.numSub; i2++) {
       state.customLevel[i2] += subOffset;
       if (state.customLevel[i2] < -12) {
@@ -21123,7 +21474,7 @@
     await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
     await postSafe(`http://localhost:4735/eq/match-target-settings`, {
       startFrequency: 10,
-      endFrequency,
+      endFrequency: endFrequency2,
       individualMaxBoostdB: maxBoost,
       overallMaxBoostdB: 0,
       flatnessTargetdB: 1,
@@ -21136,8 +21487,8 @@
     for (let i2 = state.nSpeakers + 1; i2 <= state.nSpeakers * 2; i2++) {
       await fetchSafe("target-level", i2, state.targetLevel);
       let smoothing;
-      if (endFrequency > 1e3) endFrequency = 1e3;
-      endFrequency > 282 ? smoothing = "Var" : smoothing = "None";
+      if (endFrequency2 > 1e3) endFrequency2 = 1e3;
+      endFrequency2 > 282 ? smoothing = "Var" : smoothing = "None";
       await postNext("Smooth", i2, { smoothing });
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
       await postNext("Match target", i2);
@@ -21154,7 +21505,7 @@
       await fetch_mREW(fIndex2 + 1, "PUT", { title: fName });
     }
     for (let i2 = state.nSpeakers * 2; i2 > state.nSpeakers; i2--) {
-      await postDelete2(i2);
+      await postDelete(i2);
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
     }
     for (let i2 = state.nSpeakers + 1; i2 < state.nSpeakers * 3; i2 += 2) {
@@ -21167,15 +21518,15 @@
     const bytesSub = Uint8Array.from(atob(subResponse.magnitude), (c) => c.charCodeAt(0));
     const bufferSub = bytesSub.buffer;
     const dataSub = new DataView(bufferSub);
-    let k3 = Math.round((11 - startFreq2) / freqStep2), subMagnitude = -Infinity;
+    let k = Math.round((11 - startFreq2) / freqStep2), subMagnitude = -Infinity;
     while (subMagnitude < state.targetLevel) {
-      if (startFreq2 + (k3 - 1) * freqStep2 > 100) {
+      if (startFreq2 + (k - 1) * freqStep2 > 100) {
         break;
       }
-      subMagnitude = dataSub.getFloat32(k3 * 4);
-      k3++;
+      subMagnitude = dataSub.getFloat32(k * 4);
+      k++;
     }
-    const subFlat = (startFreq2 + (k3 - 1) * freqStep2).toFixed(2);
+    const subFlat = (startFreq2 + (k - 1) * freqStep2).toFixed(2);
     if (Number(subFlat) < 100) {
       const pm = (freqStep2 / 2).toFixed(2);
       console.log(`Your bass management system is expected to measure flat down to {${subFlat} \xB1 ${pm}} Hz!`);
@@ -21199,9 +21550,8 @@
         } else {
           await new Promise((resolve) => setTimeout(resolve, speedDelay));
         }
-      } catch (error2) {
-        throw new Error("Error fetching result:", error2);
-        await new Promise((resolve) => setTimeout(resolve, speedDelay));
+      } catch (error) {
+        throw new Error(`Error clearing house curve: ${error.message || error}`);
       }
     }
     await fetchSafe("target-level", 1, state.targetLevel);
@@ -21214,7 +21564,7 @@
       "replicate data": true
     });
     await postNext("Smooth", state.nSpeakers * 3 + 2, { smoothing: "None" });
-    await postDelete2(state.nSpeakers * 3 + 1);
+    await postDelete(state.nSpeakers * 3 + 1);
     console.log("Calculating 'steady state' roll off frequencies based on 12dB/octave Butterworth highpass filter slopes (receiver spec.)...");
     for (let j2 = 0; j2 < state.freqLength; j2++) {
       await genSpeaker(state.nSpeakers * 3 + 1, state.freqIndex[j2]);
@@ -21233,7 +21583,7 @@
       state.customCrossover[i2] === 15.75 ? console.info(`Speaker ${state.commandId[i2]}: 'Large/Full range'`) : console.info(`Speaker ${state.commandId[i2]}: ${state.customCrossover[i2]}Hz`);
     }
     for (let i2 = mCount; i2 > state.nSpeakers * 3; i2--) {
-      await postDelete2(i2);
+      await postDelete(i2);
     }
     console.log("Calculated subwoofer natural lowpass filter roll off frequency:");
     let rollSub;
@@ -21247,16 +21597,16 @@
   async function drawResults() {
     await postSafe(`http://localhost:4735/eq/house-curve`, state.targetCurvePath, "House curve set");
     console.info("Optimizing EQ filters and generating expected final outputs in REW for each channel...");
-    let k3 = 0;
+    let k = 0;
     for (let i2 = 1; i2 < state.nSpeakers; i2++) {
       let xo2 = state.customCrossover[i2];
       if (xo2 != "L") {
         await genSpeaker(i2, xo2);
-        await genSub2(xo2);
+        await genSub(xo2);
       } else if (xo2 === "L") {
         await postSafe(`http://localhost:4735/measurements/${i2}/command`, { command: "Response copy" }, "Completed");
         if (state.lfePlusMain) {
-          await genSub2(state.bassExtractionLPF);
+          await genSub(state.bassExtractionLPF);
         } else {
           await postSafe(`${baseUrl}/${state.nSpeakers + 1}/filters`, {
             filters: [{
@@ -21270,8 +21620,8 @@
         }
       }
       ;
-      await postNext("Arithmetic", [state.nSpeakers * 3 + 2 + k3, state.nSpeakers * 3 + 3 + k3], { function: "A + B" });
-      await postNext("Minimum phase version", state.nSpeakers * 3 + 4 + k3, {
+      await postNext("Arithmetic", [state.nSpeakers * 3 + 2 + k, state.nSpeakers * 3 + 3 + k], { function: "A + B" });
+      await postNext("Minimum phase version", state.nSpeakers * 3 + 4 + k, {
         "include cal": true,
         "append lf tail": false,
         "append hf tail": false,
@@ -21280,7 +21630,7 @@
       });
       await postSafe(`http://localhost:4735/eq/match-target-settings`, {
         startFrequency: 10,
-        endFrequency,
+        endFrequency: endFrequency2,
         individualMaxBoostdB: maxBoost,
         overallMaxBoostdB: 0,
         flatnessTargetdB: 1,
@@ -21290,40 +21640,40 @@
         allowHighShelf: false
       }, "Update processed");
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
-      await fetchSafe("target-level", state.nSpeakers * 3 + 5 + k3, state.targetLevel);
+      await fetchSafe("target-level", state.nSpeakers * 3 + 5 + k, state.targetLevel);
       let smoothing;
-      endFrequency > 282 ? smoothing = "Var" : smoothing = "None";
-      await postNext("Smooth", state.nSpeakers * 3 + 5 + k3, { smoothing });
+      endFrequency2 > 282 ? smoothing = "Var" : smoothing = "None";
+      await postNext("Smooth", state.nSpeakers * 3 + 5 + k, { smoothing });
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
-      await postNext("Match target", state.nSpeakers * 3 + 5 + k3);
+      await postNext("Match target", state.nSpeakers * 3 + 5 + k);
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
-      await postNext("Generate filters measurement", state.nSpeakers * 3 + 5 + k3);
+      await postNext("Generate filters measurement", state.nSpeakers * 3 + 5 + k);
       await new Promise((resolve) => setTimeout(resolve, speedDelay));
-      await postNext("Generate predicted measurement", state.nSpeakers * 3 + 5 + k3);
-      await fetch_mREW(state.nSpeakers * 3 + 6 + k3, "PUT", { title: state.commandId[i2] });
+      await postNext("Generate predicted measurement", state.nSpeakers * 3 + 5 + k);
+      await fetch_mREW(state.nSpeakers * 3 + 6 + k, "PUT", { title: state.commandId[i2] });
       const title2 = state.commandId[i2] + "channel";
-      await fetch_mREW(state.nSpeakers * 3 + 7 + k3, "PUT", { title: title2 });
-      await postNext("Smooth", state.nSpeakers * 3 + 7 + k3, { smoothing: "Var" });
-      await postDelete2(state.nSpeakers * 3 + 5 + k3);
-      await postDelete2(state.nSpeakers * 3 + 4 + k3);
-      await postDelete2(state.nSpeakers * 3 + 3 + k3);
-      await postDelete2(state.nSpeakers * 3 + 2 + k3);
-      k3 += 2;
+      await fetch_mREW(state.nSpeakers * 3 + 7 + k, "PUT", { title: title2 });
+      await postNext("Smooth", state.nSpeakers * 3 + 7 + k, { smoothing: "Var" });
+      await postDelete(state.nSpeakers * 3 + 5 + k);
+      await postDelete(state.nSpeakers * 3 + 4 + k);
+      await postDelete(state.nSpeakers * 3 + 3 + k);
+      await postDelete(state.nSpeakers * 3 + 2 + k);
+      k += 2;
     }
     ;
     for (let i2 = state.nSpeakers * 3 - 2; i2 > state.nSpeakers; i2--) {
-      await postDelete2(i2);
+      await postDelete(i2);
     }
     ;
     const mData = await fetch_mREW(state.nSpeakers + 1);
     const title = mData.title;
     await postSafe(`http://localhost:4735/measurements/${state.nSpeakers + 1}/command`, { command: "Response copy" }, "Completed");
     await fetch_mREW(state.nSpeakers * 3 + 2, "PUT", { title });
-    await postDelete2(state.nSpeakers + 1);
+    await postDelete(state.nSpeakers + 1);
     let targetName = state.targetCurvePath.split("\\").pop().split(".").slice(0, -1).join(".");
     targetName += ` @ ${state.targetLevel}dB`;
     await fetch_mREW(state.nSpeakers + 2, "PUT", { title: targetName });
-    state.subLPF[0] ? await genSub2(250, state.nSpeakers + 1) : await genSub2(120, state.nSpeakers + 1);
+    state.subLPF[0] ? await genSub(250, state.nSpeakers + 1) : await genSub(120, state.nSpeakers + 1);
     await fetch_mREW(state.nSpeakers * 3 + 2, "PUT", { title: "LFEchannel" });
     await postNext("Smooth", state.nSpeakers * 3 + 2, { smoothing: "Var" });
   }
@@ -21364,24 +21714,24 @@
     document.querySelector(".notice").style.fontSize = "0.5em";
     optimizeOCA();
   }
-  function updateCheckboxStates2(triggeredBy) {
-    const noInversionCheckbox = document.getElementById("state.noInversion");
-    const forceSmallCheckbox = document.getElementById("state.forceSmall");
-    const forceWeakCheckbox = document.getElementById("state.forceWeak");
-    const forceCentreCheckbox = document.getElementById("state.forceCentre");
-    const forceLargeCheckbox = document.getElementById("state.forceLarge");
+  function updateCheckboxStates(triggeredBy) {
+    const noInversionCheckbox = document.getElementById("noInversion");
+    const forceSmallCheckbox = document.getElementById("forceSmall");
+    const forceWeakCheckbox = document.getElementById("forceWeak");
+    const forceCentreCheckbox = document.getElementById("forceCentre");
+    const forceLargeCheckbox = document.getElementById("forceLarge");
     state.forceSmall = forceSmallCheckbox.checked;
     state.forceWeak = forceWeakCheckbox.checked;
     state.forceCentre = forceCentreCheckbox.checked;
     state.forceLarge = forceLargeCheckbox.checked;
     state.noInversion = noInversionCheckbox.checked;
-    if (["state.forceSmall", "state.forceWeak", "state.forceCentre", "state.forceLarge"].includes(triggeredBy)) {
+    if (["forceSmall", "forceWeak", "forceCentre", "forceLarge"].includes(triggeredBy)) {
       forceSmallCheckbox.disabled = false;
       forceWeakCheckbox.disabled = false;
       forceCentreCheckbox.disabled = false;
       forceLargeCheckbox.disabled = false;
     }
-    if (triggeredBy === "state.forceSmall" && state.forceSmall) {
+    if (triggeredBy === "forceSmall" && state.forceSmall) {
       forceWeakCheckbox.checked = false;
       forceWeakCheckbox.disabled = true;
       forceLargeCheckbox.checked = false;
@@ -21389,7 +21739,7 @@
       forceCentreCheckbox.checked = false;
       forceCentreCheckbox.disabled = true;
     }
-    if (triggeredBy === "state.forceWeak" && state.forceWeak) {
+    if (triggeredBy === "forceWeak" && state.forceWeak) {
       forceSmallCheckbox.checked = true;
       forceSmallCheckbox.disabled = true;
       forceLargeCheckbox.checked = false;
@@ -21397,13 +21747,13 @@
       forceCentreCheckbox.checked = false;
       forceCentreCheckbox.disabled = true;
     }
-    if (triggeredBy === "state.forceLarge" && state.forceLarge) {
+    if (triggeredBy === "forceLarge" && state.forceLarge) {
       forceSmallCheckbox.checked = false;
       forceSmallCheckbox.disabled = true;
       forceWeakCheckbox.checked = false;
       forceWeakCheckbox.disabled = true;
     }
-    if (triggeredBy === "state.forceCentre" && state.forceCentre) {
+    if (triggeredBy === "forceCentre" && state.forceCentre) {
       forceSmallCheckbox.checked = false;
       forceSmallCheckbox.disabled = true;
       forceWeakCheckbox.checked = false;
@@ -21492,6 +21842,330 @@
     };
   })();
 
+  // src/calibration.js
+  function extractAdy(event) {
+    console.info("Initialising A1 Evo Nexus 1.5 ...");
+    updateCheckboxStates();
+    const file = event.target.files[0];
+    state.fileName = file.name;
+    console.info(`Audyssey calibration '${state.fileName}' has been uploaded!`);
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      let adyContents = e.target.result;
+      state.jsonData = JSON.parse(adyContents);
+      let modelName = state.jsonData.targetModelName;
+      const model = modelName.slice(-6);
+      state.sOs = modelsSoS300.includes(model) ? 300 : 343;
+      state.isCirrusLogic = micCalProb.includes(model) ? true : false;
+      state.hasxo180 = noxo180.includes(model) ? false : true;
+      state.hasxo180 ? state.freqIndex = [15.75, 40, 60, 80, 90, 100, 110, 120, 150, 180, 200, 250] : state.freqIndex = [15.75, 40, 60, 80, 90, 100, 110, 120, 150, 200, 250];
+      state.freqLength = state.freqIndex.length;
+      console.info(`Speed of sound setting has been automatically adjusted for your ${modelName} at ${state.sOs} m/s.`);
+      const hasSWChannels = state.jsonData.detectedChannels.some((channel) => channel.commandId && channel.commandId.startsWith("SW"));
+      if (!hasSWChannels) {
+        console.error("No subwoofer detected in your calibration file. The tool cannot complete optimization without a subwoofer in the system!");
+        throw new Error("No subwoofer channel found in calibration file");
+      }
+      state.subLO = -12;
+      state.subHI = 12;
+      state.cDist = getDistance(state.jsonData.detectedChannels);
+      if (`subwooferLayout` in state.jsonData) {
+        state.jsonData.subwooferLayout = "N/A";
+      }
+      if (`subwooferMode` in state.jsonData) {
+        state.jsonData.subwooferMode = state.sOs === 343 ? "Standard" : "N/A";
+      }
+      const zerosArray = [1, ...Array(16383).fill(0)];
+      state.jsonData.dynamicVolume = false;
+      state.jsonData.lfc = false;
+      state.jsonData.dynamicEq = false;
+      state.jsonData.enTargetCurveType = 1;
+      let subwooferTypeStart = 54;
+      let subwooferCounter = 0;
+      const subwooferChannels = state.jsonData.detectedChannels.filter((channel) => channel.commandId.startsWith("SW"));
+      state.numSub = subwooferChannels.length;
+      state.jsonData.detectedChannels.forEach((channel, index) => {
+        const isSubwoofer = channel.commandId.startsWith("SW");
+        const isFirstSubwoofer = isSubwoofer && index === state.jsonData.detectedChannels.indexOf(subwooferChannels[0]);
+        if (isSubwoofer) {
+          channel.enChannelType = subwooferTypeStart + subwooferCounter;
+          subwooferCounter++;
+          channel.midrangeCompensation = true;
+          channel.frequencyRangeRolloff = 250;
+          channel.customLevel = "0.0";
+          channel.customDistance = 0;
+          channel.channelReport.customEnSpeakerConnect = 3;
+          channel.channelReport.distance = 0;
+          channel.channelReport.isReversePolarity = true;
+          channel.trimAdjustment = "0.0";
+          channel.delayAdjustment = "0.0";
+          if ("state.customCrossover" in channel) {
+            delete channel.customCrossover;
+          }
+          if ("customSpeakerType" in channel) {
+            delete channel.customSpeakerType;
+          }
+          if (isFirstSubwoofer) {
+            channel.customTargetCurvePoints = [];
+            const responseData = channel.responseData;
+            const keysToKeep = Object.keys(responseData).slice(0, 3);
+            keysToKeep.forEach((key) => {
+              responseData[key] = state.isCirrusLogic ? antiMicCal : zerosArray;
+            });
+            Object.keys(responseData).forEach((key) => {
+              if (!keysToKeep.includes(key)) {
+                delete responseData[key];
+              }
+            });
+          } else {
+            if ("customTargetCurvePoints" in channel) {
+              delete channel.customTargetCurvePoints;
+            }
+            channel.responseData = {};
+          }
+        } else {
+          channel.customTargetCurvePoints = [];
+          channel.midrangeCompensation = false;
+          channel.frequencyRangeRolloff = 2e4;
+          channel.customLevel = "0.0";
+          channel.customDistance = 0;
+          channel.customCrossover = "F";
+          channel.customSpeakerType = "L";
+          channel.channelReport.customEnSpeakerConnect = 2;
+          channel.channelReport.distance = 0;
+          channel.customTargetCurvePoints = [];
+          const responseData = channel.responseData;
+          const keysToKeep = Object.keys(responseData).slice(0, 3);
+          keysToKeep.forEach((key) => {
+            responseData[key] = state.isCirrusLogic ? antiMicCal : zerosArray;
+          });
+          Object.keys(responseData).forEach((key) => {
+            if (!keysToKeep.includes(key)) {
+              delete responseData[key];
+            }
+          });
+        }
+      });
+      (async function() {
+        try {
+          document.getElementById("saveButton").disabled = false;
+          document.getElementById("saveDEQButton").disabled = false;
+          await compareREW();
+          if (!state.dontStart) {
+            document.getElementById("startButton").disabled = false;
+          }
+        } catch (error) {
+          console.error("An error occurred:", error);
+        }
+      })();
+    };
+    reader.readAsText(file);
+  }
+  async function saveBaseJson() {
+    state.jsonData.dynamicEq = false;
+    let adyContents = JSON.stringify(state.jsonData, null, 2);
+    const blob = new Blob([adyContents], { type: "application/json" });
+    const urlBlob = URL.createObjectURL(blob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = urlBlob;
+    downloadLink.download = "AVReceiverREWmode.ady";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
+  async function saveDeqBaseJson() {
+    state.jsonData.dynamicEq = true;
+    let adyContents = JSON.stringify(state.jsonData, null, 2);
+    const blob = new Blob([adyContents], { type: "application/json" });
+    const urlBlob = URL.createObjectURL(blob);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = urlBlob;
+    downloadLink.download = "AVReceiverREWmodeDEQ.ady";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  }
+  function getDistance(channels) {
+    let dist = parseFloat(channels[1].channelReport.distance);
+    if (isNaN(dist) || dist === 0) {
+      dist = parseFloat(channels[1].customDistance);
+      if (isNaN(dist) || dist === 0 || dist === null) {
+        dist = 2.75;
+        state.noDistance = true;
+      }
+    }
+    if (CenterSpeakerDistance > 0) {
+      dist = CenterSpeakerDistance / 343 * state.sOs;
+      state.noDistance = false;
+    }
+    return dist;
+  }
+  async function sortREW() {
+    console.info("Checking and sorting measurements in REW...");
+    let noErrors = true;
+    const allowedNames = ["FL", "FR", "C", "SLA", "SRA", "SBL", "SBR", "SB", "FHL", "FHR", "FWL", "FWR", "TFL", "TFR", "TML", "TMR", "TRL", "TRR", "RHL", "RHR", "FDL", "FDR", "SDL", "SDR", "BDL", "BDR", "SHL", "SHR", "TS", "CH", "SW1", "SW2", "SW3", "SW4"];
+    let measurements = await fetch_mREW();
+    let mCount = Object.keys(measurements).length;
+    let measurementArray = Object.keys(measurements).map((key) => ({
+      index: parseInt(key),
+      title: measurements[key].title
+    }));
+    let titleSet = /* @__PURE__ */ new Set();
+    let duplicates = [];
+    let invalidNames = [];
+    for (let measurement of measurementArray) {
+      if (titleSet.has(measurement.title)) {
+        duplicates.push(measurement.title);
+      } else {
+        titleSet.add(measurement.title);
+      }
+      if (!allowedNames.includes(measurement.title)) {
+        invalidNames.push(measurement.title);
+      }
+    }
+    if (duplicates.length > 0) {
+      console.warn("Duplicate measurements found:\n" + duplicates.join("\n"));
+      noErrors = false;
+    }
+    if (invalidNames.length > 0) {
+      console.warn("Measurements with invalid names found:\n" + invalidNames.join("\n"));
+      noErrors = false;
+    }
+    if (noErrors) {
+      let swMeasurements = measurementArray.filter((m) => m.title.startsWith("SW"));
+      let bdMeasurements = measurementArray.filter((m) => m.title.startsWith("BD"));
+      let otherMeasurements = measurementArray.filter((m) => !m.title.startsWith("SW") && !m.title.startsWith("BD"));
+      swMeasurements.sort((a, b) => a.title.localeCompare(b.title));
+      bdMeasurements.sort((a, b) => a.title.localeCompare(b.title));
+      otherMeasurements.sort((a, b) => a.title.localeCompare(b.title));
+      let sortedMeasurements = [
+        ...otherMeasurements,
+        ...bdMeasurements,
+        ...swMeasurements
+      ];
+      let newIndex = mCount + 1;
+      for (let measurement of sortedMeasurements) {
+        await postSafe(`http://localhost:4735/measurements/${measurement.index}/command`, { command: "Response copy" }, "Completed");
+        const titleNew = measurement.title + "o";
+        await fetch_mREW(newIndex, "PUT", { title: titleNew });
+        newIndex++;
+      }
+      for (let i2 = mCount; i2 >= 1; i2--) {
+        await postDelete(i2);
+      }
+      for (let i2 = 1; i2 <= state.nSpeakers + state.numSub - 1; i2++) {
+        const mt = await fetch_mREW(i2);
+        const t = mt.title;
+        state.commandId[i2] = t.slice(0, -1);
+      }
+      console.info("Measurements in REW are consistent amd have been successfully sorted.");
+    } else {
+      console.warn("Please check your REW measurements. Optimization cannot continue!");
+      throw new Error("REW measurements are invalid \u2014 check warnings above");
+    }
+  }
+  async function compareREW() {
+    const allowedNames = ["FL", "FR", "C", "SLA", "SRA", "SBL", "SBR", "SB", "FHL", "FHR", "FWL", "FWR", "TFL", "TFR", "TML", "TMR", "TRL", "TRR", "RHL", "RHR", "FDL", "FDR", "SDL", "SDR", "BDL", "BDR", "SHL", "SHR", "TS", "CH", "SW1", "SW2", "SW3", "SW4"];
+    try {
+      let measurements = await fetch_mREW();
+      if (!measurements || Object.keys(measurements).length === 0) {
+        console.warn("No measurements found in REW.");
+        return;
+      }
+      state.dontStart = false;
+      console.info("Comparing REW measurements with the uploaded calibration file...");
+      let measurementArray = Object.keys(measurements).map((key) => ({
+        index: parseInt(key),
+        title: measurements[key].title
+      }));
+      let jsonNames = state.jsonData.detectedChannels.map((channel) => channel.commandId);
+      let noSpeakerErrors = true;
+      let rewSWMeasurements = measurementArray.filter((m) => m.title.startsWith("SW"));
+      let rewNonSWMeasurements = measurementArray.filter((m) => !m.title.startsWith("SW"));
+      let jsonSWMeasurements = jsonNames.filter((name) => name.startsWith("SW"));
+      let jsonNonSWMeasurements = jsonNames.filter((name) => !name.startsWith("SW"));
+      let unmatchedREWNames = rewNonSWMeasurements.filter(
+        (rewMeasurement) => !jsonNonSWMeasurements.includes(rewMeasurement.title)
+      ).map((m) => m.title);
+      let unmatchedJSONNames = jsonNonSWMeasurements.filter(
+        (jsonName) => !rewNonSWMeasurements.some((rewMeasurement) => rewMeasurement.title === jsonName)
+      );
+      if (unmatchedREWNames.length > 0 || unmatchedJSONNames.length > 0) {
+        console.warn("Unmatched speakers were found:");
+        noSpeakerErrors = false;
+        if (unmatchedREWNames.length > 0) {
+          console.warn("In REW: " + unmatchedREWNames.join(", "));
+        }
+        if (unmatchedJSONNames.length > 0) {
+          console.warn("In uploaded calibration file (.ady): " + unmatchedJSONNames.join(", "));
+        }
+      }
+      if (noSpeakerErrors) {
+        console.info("All speaker checks passed. Proceeding with subwoofer(s) check...");
+      } else {
+        console.error("Measurements in REW did NOT match with the speakers in the uploaded calibration file!");
+        throw new Error(`UnmatchedSpeakers: Please upload a suitable .ady file or load/replace REW measurements and restart the script.`);
+      }
+      state.nSpeakers = rewNonSWMeasurements.length + 1;
+      let firstSWChannel = state.jsonData.detectedChannels.find((ch) => ch.commandId.startsWith("SW"));
+      if (!firstSWChannel) {
+        console.error("No Subwoofer channel was found in the calibration file, optimization cannot proceed!");
+        throw new Error(`NoSubwooferError: Evo can only optimize systems with a subwoofer.`);
+      }
+      if (rewSWMeasurements.length !== jsonSWMeasurements.length) {
+        console.warn(`Mismatch in the number of subwoofers between REW (${rewSWMeasurements.length}) and the uploaded .ady file (${jsonSWMeasurements.length}).`);
+        if (rewSWMeasurements.length === 0) {
+          throw new Error(`SubwooferError: You have NO subwoofer measurements in REW. Please check and restart the script!`);
+        }
+        console.warn("Overriding calibration file subwoofer structure based on the number of subwoofer measurements in REW!");
+        if (`subwooferNum` in state.jsonData) {
+          state.jsonData.subwooferNum = rewSWMeasurements.length;
+        }
+        let multeqType = parseInt(state.jsonData.enMultEQType);
+        if (rewSWMeasurements.length > 1 && multeqType < 2) {
+          throw new Error(`SubwooferError: You have more than one subwoofer measurement in REW and this is not compatible with your AV Receiver. Please check and restart the script!`);
+        }
+        state.jsonData.detectedChannels = state.jsonData.detectedChannels.filter((ch) => !ch.commandId.startsWith("SW") || ch === firstSWChannel);
+        if (multeqType > 1) {
+          firstSWChannel.enChannelType = 54;
+        }
+        let chType = parseInt(firstSWChannel.enChannelType);
+        state.swChannelCount = rewSWMeasurements.length;
+        state.numSub = state.swChannelCount;
+        if (state.numSub > 1) {
+          state.bassMode = "Directional";
+        }
+        for (let i2 = 1; i2 < rewSWMeasurements.length; i2++) {
+          let newSWChannel = JSON.parse(JSON.stringify(firstSWChannel));
+          newSWChannel.commandId = `SW${i2 + 1}`;
+          chType++;
+          newSWChannel.enChannelType = chType;
+          state.jsonData.detectedChannels.push(newSWChannel);
+          if ("customTargetCurvePoints" in newSWChannel) {
+            delete newSWChannel.customTargetCurvePoints;
+          }
+          newSWChannel.responseData = {};
+        }
+        console.log("Subwoofer reconciliation complete. Consider saving a copy of the updated base calibration file for future use!");
+      } else {
+        console.info("Subwoofer count consistency checks passed!");
+      }
+      document.getElementById("button1").disabled = true;
+    } catch (error) {
+      if (error.message.startsWith("UnmatchedSpeakers")) {
+        console.error(error.message.replace("UnmatchedSpeakers: ", ""));
+      } else if (error.message.startsWith("NoSubwooferError")) {
+        console.error(error.message.replace("NoSubwooferError: ", ""));
+      } else if (error.message.startsWith("SubwooferError")) {
+        console.error(error.message.replace("SubwooferError: ", ""));
+      } else {
+        console.warn("Unable to detect REW!");
+        state.dontStart = true;
+      }
+      return;
+    }
+  }
+
   // src/main.js
   document.addEventListener("DOMContentLoaded", () => {
     const fileInput = document.getElementById("fileInput");
@@ -21504,7 +22178,7 @@
     document.getElementById("subwooferLPF").addEventListener("change", updateSubwooferLPFState);
     const checkboxIds = ["noInversion", "forceSmall", "forceWeak", "forceCentre", "forceLarge"];
     checkboxIds.forEach((id) => {
-      document.getElementById(id).addEventListener("change", () => updateCheckboxStates2(id));
+      document.getElementById(id).addEventListener("change", () => updateCheckboxStates(id));
     });
   });
 })();

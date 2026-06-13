@@ -1,10 +1,15 @@
 import { state } from './state.js';
 import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, enableBlock, disableBlock, enableGraph, disableGraph, clearCommands } from './rew-api.js';
-import { rmsVolume, genSub } from './signal.js';
-import { alignCenter } from './alignment.js';
-import { aceXO } from './crossover.js';
+import { rmsVolume, genSub, genSpeaker, subIRP } from './signal.js';
+import { epAlign } from './alignment.js';
+import { aceXO, findXO, tectonic } from './crossover.js';
 import { updateAdy } from './filters.js';
 import { sortREW } from './calibration.js';
+import { endFrequency as endFrequencyDefault, maxBoost } from './config.js';
+
+// endFrequency is a user-tweakable default that the pipeline clamps at runtime,
+// so it needs a mutable module-local copy (imported bindings are read-only).
+let endFrequency = endFrequencyDefault;
 
 async function checkIfPaused() {
   if (state.isPaused) {
@@ -27,11 +32,11 @@ async function optimizeOCA() {
   disableGraph();
   const startTime = performance.now();
   document.getElementById('subwooferLPF').disabled = true;
-  document.getElementById('state.forceSmall').disabled = true;
-  document.getElementById('state.forceWeak').disabled = true;
-  document.getElementById('state.forceCentre').disabled = true;
-  document.getElementById('state.forceLarge').disabled = true;
-  document.getElementById('state.noInversion').disabled = true;
+  document.getElementById('forceSmall').disabled = true;
+  document.getElementById('forceWeak').disabled = true;
+  document.getElementById('forceCentre').disabled = true;
+  document.getElementById('forceLarge').disabled = true;
+  document.getElementById('noInversion').disabled = true;
   try {
     await sortREW();
     await checkIfPaused();
@@ -225,13 +230,13 @@ async function groundWorks() {
   console.infoUpdate("Performing precision temporal alignment across the speaker array for optimal coherence...");
   const oIndices = Array.from({ length: state.nSpeakers + state.numSub - 1 }, (_, j) => j + 1);
   await epAlign(oIndices, true);
-  measurements = await fetch_mREW();
+  const measurements = await fetch_mREW();
   for (let i = 1; i <= state.nSpeakers + state.numSub - 1; i++) {
     state.mSec[i] = parseFloat(measurements[i].cumulativeIRShiftSeconds);
   }
   console.infoUpdate(`Proprietary 'filtered excess phase' based impulse alignment optimization is complete!`);
-  const minM = Math.min(...mSec.slice(1, state.nSpeakers));
-  const maxM = Math.max(...mSec.slice(1, state.nSpeakers));
+  const minM = Math.min(...state.mSec.slice(1, state.nSpeakers));
+  const maxM = Math.max(...state.mSec.slice(1, state.nSpeakers));
   const limInsec = 6.00049999 / state.sOs;
   state.msecMin = maxM - limInsec;
   state.msecMax = minM + limInsec;
@@ -356,8 +361,7 @@ async function witchCraft() {
       else { await new Promise(resolve => setTimeout(resolve, speedDelay)); }
     }
     catch (error) {
-      throw new Error('Error fetching result:', error);
-      await new Promise(resolve => setTimeout(resolve, speedDelay));
+      throw new Error(`Error clearing house curve: ${error.message || error}`);
     }
   }
   await fetchSafe('target-level', 1,state.targetLevel);
