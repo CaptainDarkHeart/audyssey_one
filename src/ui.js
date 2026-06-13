@@ -37,23 +37,23 @@ function startButton_clicked() {
   optimizeOCA();
 }
 function updateCheckboxStates(triggeredBy) {
-  const noInversionCheckbox = document.getElementById('state.noInversion');
-  const forceSmallCheckbox = document.getElementById('state.forceSmall');
-  const forceWeakCheckbox = document.getElementById('state.forceWeak');
-  const forceCentreCheckbox = document.getElementById('state.forceCentre');
-  const forceLargeCheckbox = document.getElementById('state.forceLarge');
+  const noInversionCheckbox = document.getElementById('noInversion');
+  const forceSmallCheckbox = document.getElementById('forceSmall');
+  const forceWeakCheckbox = document.getElementById('forceWeak');
+  const forceCentreCheckbox = document.getElementById('forceCentre');
+  const forceLargeCheckbox = document.getElementById('forceLarge');
   state.forceSmall = forceSmallCheckbox.checked;
   state.forceWeak = forceWeakCheckbox.checked;
   state.forceCentre = forceCentreCheckbox.checked;
   state.forceLarge = forceLargeCheckbox.checked;
   state.noInversion = noInversionCheckbox.checked;
-  if (['state.forceSmall', 'state.forceWeak', 'state.forceCentre', 'state.forceLarge'].includes(triggeredBy)) {
+  if (['forceSmall', 'forceWeak', 'forceCentre', 'forceLarge'].includes(triggeredBy)) {
         forceSmallCheckbox.disabled = false;
         forceWeakCheckbox.disabled = false;
         forceCentreCheckbox.disabled = false;
         forceLargeCheckbox.disabled = false;
       }
-  if (triggeredBy === 'state.forceSmall' && state.forceSmall) {
+  if (triggeredBy === 'forceSmall' && state.forceSmall) {
         forceWeakCheckbox.checked = false;
         forceWeakCheckbox.disabled = true;
         forceLargeCheckbox.checked = false;
@@ -61,7 +61,7 @@ function updateCheckboxStates(triggeredBy) {
         forceCentreCheckbox.checked = false;
         forceCentreCheckbox.disabled = true;
       }
-  if (triggeredBy === 'state.forceWeak' && state.forceWeak) {
+  if (triggeredBy === 'forceWeak' && state.forceWeak) {
         forceSmallCheckbox.checked = true;
         forceSmallCheckbox.disabled = true;
         forceLargeCheckbox.checked = false;
@@ -69,13 +69,13 @@ function updateCheckboxStates(triggeredBy) {
         forceCentreCheckbox.checked = false;
         forceCentreCheckbox.disabled = true;
   }
-  if (triggeredBy === 'state.forceLarge' && state.forceLarge) {
+  if (triggeredBy === 'forceLarge' && state.forceLarge) {
         forceSmallCheckbox.checked = false;
         forceSmallCheckbox.disabled = true;
         forceWeakCheckbox.checked = false;
         forceWeakCheckbox.disabled = true;
   }
-  if (triggeredBy === 'state.forceCentre' && state.forceCentre) {
+  if (triggeredBy === 'forceCentre' && state.forceCentre) {
         forceSmallCheckbox.checked = false;
         forceSmallCheckbox.disabled = true;
         forceWeakCheckbox.checked = false;

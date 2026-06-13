@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
+import { baseUrl, speedDelay, fetch_mREW, postNext, postSafe, fetchSafe, postDelete } from './rew-api.js';
 
 async function rmsVolume(noM) {
   const measurements = await fetch_mREW();
@@ -62,6 +62,7 @@ async function rmsVolume(noM) {
   return bestOffset;
 }
 async function subIRP(noM) {
+  let startFreq, ppo;
   const measurements = await fetch_mREW();
   const mCount = Object.keys(measurements).length;
   await postNext('Smooth', noM, { smoothing: "None" });

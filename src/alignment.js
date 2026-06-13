@@ -1,9 +1,13 @@
 import { state } from './state.js';
-import { baseUrl, speedDelay, fetch_mREW, postNext, postSafe, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
-import { calcEP } from './signal.js';
+import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
+import { rmsError, genSpeaker, genSub } from './signal.js';
+import { perSpeakerXOSearchRange } from './config.js';
 
 async function alignCenter() {
   let normDev = Infinity, centerDelay, centerInv, centerPossible = false;
+  // Declared explicitly here; the original monolith relied on these being
+  // implicit globals shared within one scope.
+  let xo, frontLFE, normXO, isPossible, requiredDelay, isInverted, excessPhase;
   console.log(`Subwoofer(s) will now be aligned to 'Center' speaker...`);
   let indexC = 0;
   for (let i = state.nSpeakers + 2; i < state.nSpeakers * 3 - 2; i += 2) {
@@ -277,7 +281,7 @@ async function align4impulse(ind1, ind2) {
   return {isPossible, requiredDelay, isInverted, excessPhase};
 }
 async function alignMsub(ind1, ind2, loDelay, hiDelay) {
-  let isInverted = false, isPossibleI = false, requiredDelayI = NaN, sumIndex = null, samples;
+  let isInverted = false, isPossibleI = false, requiredDelayI = NaN, sumIndex = null, samples, checkFreq;
   await postSafe("http://localhost:4735/alignment-tool/index-a", ind1, "selected as measurement A");
   await postSafe("http://localhost:4735/alignment-tool/index-b", ind2, "selected as measurement B");
   await postAlign('Reset all');

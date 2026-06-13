@@ -1,7 +1,14 @@
 import { state } from './state.js';
-import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
-import { genSub, rmsError } from './signal.js';
-import { epAlign, alignCenter, alignSurrounds, alignMsub } from './alignment.js';
+import { fetch_mREW, postNext, postSafe, postDelete, fetchSafe } from './rew-api.js';
+import { genSub, rmsError, genSpeaker, rmsVolume, calcEP } from './signal.js';
+import { alignCenter, align4impulse, alignMsub } from './alignment.js';
+import { perSpeakerXOSearchRange } from './config.js';
+
+// These were implicit globals shared across one scope in the original monolith.
+// Declared at module scope here so the same cross-function sharing is preserved
+// under ES-module strict mode.
+let startFreq, k1, k2, ppo, freqStep, oCount, i, minXO, maxXO, xo, pairName;
+let isPossible, requiredDelay, isInverted, excessPhase;
 
 async function aceXO() {
   let subMoves = 0, inversion = false, lmDev = Infinity, lmXO, lmDelay = 0, lmInv = false, normDev = Infinity, normXO , normDelay = 0, normInv = false, frontLFE = Infinity, centerAligned = false;
@@ -39,7 +46,7 @@ async function aceXO() {
     if (title === "FLfinal") {indexFL = i; break;}
   }
   await postNext('Vector average', [indexFL, indexFL + 2]);
-  if (indexFL === 0) {console.error("Optimization cannot continue without 'Front' speakers!"); throw new error;}
+  if (indexFL === 0) {console.error("Optimization cannot continue without 'Front' speakers!"); throw new Error("Optimization cannot continue without 'Front' speakers!");}
   let firstIndex, lastIndex;
   if (!state.forceWeak) {
     let minXO = Math.min(state.customCrossover[Object.keys(state.commandId).find(key => state.commandId[key] === "FL")], state.customCrossover[Object.keys(state.commandId).find(key => state.commandId[key] === "FR")]);
@@ -527,7 +534,7 @@ async function tectonic() {
     console.warn("All attempts to align your subwoofers between each other have failed!");
     console.error("Optimization cannot continue!");
     console.log("Please identify the reason and fix excessive delays in one or more of your subs then repeat Audyssey calibration!");
-    throw new error;
+    throw new Error("Optimization cannot continue — unable to align subwoofers between each other.");
   }
   let bestEP = Infinity, bestI, iCount = 1, bestCount = null;
   for (const index of finalIndices) {

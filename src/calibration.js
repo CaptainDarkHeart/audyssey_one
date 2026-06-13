@@ -2,6 +2,8 @@ import { state } from './state.js';
 import { modelsSoS300, micCalProb, noxo180 } from './data/receivers.js';
 import { antiMicCal } from './data/mic-cal.js';
 import { baseUrl, speedDelay, fetch_mREW, postSafe, postDelete } from './rew-api.js';
+import { CenterSpeakerDistance } from './config.js';
+import { updateCheckboxStates } from './ui.js';
 
 function extractAdy(event) {
   console.info("Initialising A1 Evo Nexus 1.5 ...");
