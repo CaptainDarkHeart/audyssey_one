@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { getDistancePure } from './utils.js';
 import { modelsSoS300, micCalProb, noxo180 } from './data/receivers.js';
 import { antiMicCal } from './data/mic-cal.js';
 import { baseUrl, speedDelay, fetch_mREW, postSafe, postDelete } from './rew-api.js';
@@ -138,18 +139,8 @@ async function saveDeqBaseJson() {
   document.body.removeChild(downloadLink);
 }
 function getDistance(channels) {
-  let dist = parseFloat(channels[1].channelReport.distance);
-  if (isNaN(dist) || dist === 0) {
-    dist = parseFloat(channels[1].customDistance);
-    if (isNaN(dist) || dist === 0 || dist === null) {
-      dist = 2.75;
-      state.noDistance = true;
-    }
-  }
-  if (CenterSpeakerDistance > 0) {
-    dist = CenterSpeakerDistance / 343 * state.sOs;
-    state.noDistance = false;
-  }
+  const { dist, noDistance } = getDistancePure(channels, CenterSpeakerDistance, state.sOs);
+  state.noDistance = noDistance;
   return dist;
 }
 async function sortREW(){

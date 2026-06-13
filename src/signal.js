@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { findBestSPLOffset } from './utils.js';
 import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, fetchSafe, postAlign, fetchAlign } from './rew-api.js';
 
 async function rmsVolume(noM) {
@@ -37,24 +38,7 @@ async function rmsVolume(noM) {
     const splTarget = dataTarget.getFloat32(k * 4);
     state.targetArray.push(splTarget);
   }
-  function calculateRmsError(offset) {
-    let sumOfSquares = 0;
-    for (let i = 0; i < subArray.length; i++) {
-      const diff = (subArray[i] + offset) - state.targetArray[i];
-      sumOfSquares += diff * diff;
-    }
-    const meanOfSquares = sumOfSquares / subArray.length;
-    return Math.sqrt(meanOfSquares);
-  }
-  let bestOffset = null;
-  let lowestRmsError = Infinity;
-  for (let offset = -12.5; offset <= 12.5; offset += 0.5) {
-    const rmsError = calculateRmsError(offset);
-    if (rmsError < lowestRmsError) {
-      lowestRmsError = rmsError;
-      bestOffset = offset;
-    }
-  }
+  let bestOffset = findBestSPLOffset(subArray, state.targetArray);
   if (bestOffset <= 10) {bestOffset += 2};
   await postNext('Add SPL offset', noM, { offset: bestOffset });
   await postDelete(mCount + 1);

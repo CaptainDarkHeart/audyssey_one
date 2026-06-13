@@ -512,6 +512,88 @@
     limitLPF: null
   };
 
+  // src/utils.js
+  function roundToNearestHalf(num) {
+    return Math.round(num * 2) / 2;
+  }
+  function roundToPrecision(num, precision = 10) {
+    const factor = Math.pow(10, precision);
+    return Math.round(num * factor) / factor;
+  }
+  function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.round(seconds % 60);
+    if (minutes === 0) {
+      return `${remainingSeconds} second${remainingSeconds !== 1 ? "s" : ""}`;
+    }
+    if (remainingSeconds === 0) {
+      return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
+    }
+    return `${minutes} minute${minutes !== 1 ? "s" : ""} and ${remainingSeconds} second${remainingSeconds !== 1 ? "s" : ""}`;
+  }
+  function rmsErrorBetween(a, b) {
+    if (a.length !== b.length) {
+      throw new Error(`rmsErrorBetween: arrays must be same length (${a.length} vs ${b.length})`);
+    }
+    let sumOfSquares = 0;
+    for (let i2 = 0; i2 < a.length; i2++) {
+      const diff = a[i2] - b[i2];
+      sumOfSquares += diff * diff;
+    }
+    return Math.sqrt(sumOfSquares / a.length);
+  }
+  function findBestSPLOffset(signal, target) {
+    let bestOffset = 0;
+    let lowestRms = Infinity;
+    for (let offset = -12.5; offset <= 12.5; offset += 0.5) {
+      const shifted = signal.map((v) => v + offset);
+      const rms = rmsErrorBetween(shifted, target);
+      if (rms < lowestRms) {
+        lowestRms = rms;
+        bestOffset = offset;
+      }
+    }
+    return bestOffset;
+  }
+  function findBestLevelDeduction(alignments) {
+    let bestDeduction = 0;
+    let minTotalAbsError = Infinity;
+    let minTotalDifference = Infinity;
+    let bestAdjustments = [];
+    for (let i2 = 0; i2 < alignments.length; i2++) {
+      const deduction = alignments[i2];
+      const current = alignments.map((a) => a - deduction);
+      const applied = current.map((adj) => roundToNearestHalf(adj));
+      applied[i2] = 0;
+      const errors = current.map((adj, idx) => adj - applied[idx]);
+      const totalAbsError = roundToPrecision(errors.reduce((s, e) => s + Math.abs(e), 0), 6);
+      const totalDifference = roundToPrecision(Math.abs(errors.reduce((s, e) => s + e, 0)), 6);
+      if (totalAbsError < minTotalAbsError || roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && totalDifference < minTotalDifference || roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && roundToPrecision(totalDifference, 6) === roundToPrecision(minTotalDifference, 6) && deduction < bestDeduction) {
+        minTotalAbsError = totalAbsError;
+        minTotalDifference = totalDifference;
+        bestDeduction = deduction;
+        bestAdjustments = applied;
+      }
+    }
+    return { bestDeduction, bestAdjustments };
+  }
+  function getDistancePure(channels, centerSpeakerDistance, sOs) {
+    let dist = parseFloat(channels[1].channelReport.distance);
+    let noDistance = false;
+    if (isNaN(dist) || dist === 0) {
+      dist = parseFloat(channels[1].customDistance);
+      if (isNaN(dist) || dist === 0 || dist == null) {
+        dist = 2.75;
+        noDistance = true;
+      }
+    }
+    if (centerSpeakerDistance > 0) {
+      dist = centerSpeakerDistance / 343 * sOs;
+      noDistance = false;
+    }
+    return { dist, noDistance };
+  }
+
   // src/data/receivers.js
   var modelsSoS300 = [
     "-S720W",
@@ -17513,18 +17595,8 @@
     document.body.removeChild(downloadLink);
   }
   function getDistance(channels) {
-    let dist = parseFloat(channels[1].channelReport.distance);
-    if (isNaN(dist) || dist === 0) {
-      dist = parseFloat(channels[1].customDistance);
-      if (isNaN(dist) || dist === 0 || dist === null) {
-        dist = 2.75;
-        state.noDistance = true;
-      }
-    }
-    if (CenterSpeakerDistance > 0) {
-      dist = CenterSpeakerDistance / 343 * state.sOs;
-      state.noDistance = false;
-    }
+    const { dist, noDistance } = getDistancePure(channels, CenterSpeakerDistance, state.sOs);
+    state.noDistance = noDistance;
     return dist;
   }
   async function sortREW() {
@@ -17731,24 +17803,7 @@
       const splTarget = dataTarget.getFloat32(k3 * 4);
       state.targetArray.push(splTarget);
     }
-    function calculateRmsError(offset) {
-      let sumOfSquares = 0;
-      for (let i2 = 0; i2 < subArray.length; i2++) {
-        const diff = subArray[i2] + offset - state.targetArray[i2];
-        sumOfSquares += diff * diff;
-      }
-      const meanOfSquares = sumOfSquares / subArray.length;
-      return Math.sqrt(meanOfSquares);
-    }
-    let bestOffset = null;
-    let lowestRmsError = Infinity;
-    for (let offset = -12.5; offset <= 12.5; offset += 0.5) {
-      const rmsError3 = calculateRmsError(offset);
-      if (rmsError3 < lowestRmsError) {
-        lowestRmsError = rmsError3;
-        bestOffset = offset;
-      }
-    }
+    let bestOffset = findBestSPLOffset(subArray, state.targetArray);
     if (bestOffset <= 10) {
       bestOffset += 2;
     }
@@ -20880,17 +20935,6 @@
       await updateAdy();
       const endTime = performance.now();
       const totalTime = (endTime - startTime) / 1e3;
-      const formatTime = (seconds) => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = Math.round(seconds % 60);
-        if (minutes === 0) {
-          return `${remainingSeconds} second${remainingSeconds !== 1 ? "s" : ""}`;
-        } else if (remainingSeconds === 0) {
-          return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
-        } else {
-          return `${minutes} minute${minutes !== 1 ? "s" : ""} and ${remainingSeconds} second${remainingSeconds !== 1 ? "s" : ""}`;
-        }
-      };
       const getCurrentDateTime = () => {
         const now = /* @__PURE__ */ new Date();
         return now.toLocaleString("en-US", {
@@ -21004,32 +21048,7 @@
       alignments.push(netMove);
     });
     alignments.pop();
-    const roundToNearestHalf = (num) => Math.round(num * 2) / 2;
-    let bestDeduction = 0;
-    let minTotalAbsError = Infinity;
-    let minTotalDifference = Infinity;
-    let bestAdjustments = [];
-    const roundToPrecision = (num, precision = 10) => {
-      return Math.round(num * Math.pow(10, precision)) / Math.pow(10, precision);
-    };
-    const tolerance = 1e-6;
-    for (let i2 = 0; i2 < alignments.length; i2++) {
-      const deduction = alignments[i2];
-      let currentAdjustments = alignments.map((a) => a - deduction);
-      let appliedAdjustments = currentAdjustments.map((adj) => roundToNearestHalf(adj));
-      appliedAdjustments[i2] = 0;
-      const errors = currentAdjustments.map((adj, idx) => adj - appliedAdjustments[idx]);
-      let totalAbsError = errors.reduce((sum, error2) => sum + Math.abs(error2), 0);
-      let totalDifference = errors.reduce((sum, error2) => sum + error2, 0);
-      totalAbsError = roundToPrecision(totalAbsError, 6);
-      totalDifference = roundToPrecision(Math.abs(totalDifference), 6);
-      if (totalAbsError < minTotalAbsError || roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && totalDifference < minTotalDifference || roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && roundToPrecision(totalDifference, 6) === roundToPrecision(minTotalDifference, 6) && deduction < bestDeduction) {
-        minTotalAbsError = totalAbsError;
-        minTotalDifference = totalDifference;
-        bestDeduction = deduction;
-        bestAdjustments = appliedAdjustments;
-      }
-    }
+    const { bestDeduction, bestAdjustments } = findBestLevelDeduction(alignments);
     for (let i2 = 1; i2 <= bestAdjustments.length; i2++) {
       state.customLevel[i2] = bestAdjustments[i2 - 1];
       const offsetValue = bestAdjustments[i2 - 1] - alignments[i2 - 1] - volDelta;

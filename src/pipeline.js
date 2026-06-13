@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { formatTime, findBestLevelDeduction } from './utils.js';
 import { baseUrl, speedDelay, fetch_mREW, postNext, postNext2, postSafe, postDelete, fetchSafe, enableBlock, disableBlock, enableGraph, disableGraph, clearCommands } from './rew-api.js';
 import { rmsVolume, genSub } from './signal.js';
 import { alignCenter } from './alignment.js';
@@ -54,17 +55,6 @@ async function optimizeOCA() {
     await updateAdy();
     const endTime = performance.now();
     const totalTime = (endTime - startTime) / 1000;
-    const formatTime = (seconds) => {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = Math.round(seconds % 60);
-        if (minutes === 0) {
-            return `${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
-        } else if (remainingSeconds === 0) {
-            return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
-        } else {
-            return `${minutes} minute${minutes !== 1 ? 's' : ''} and ${remainingSeconds} second${remainingSeconds !== 1 ? 's' : ''}`;
-        }
-    };
     const getCurrentDateTime = () => {
         const now = new Date();
         return now.toLocaleString('en-US', {
@@ -175,42 +165,7 @@ async function groundWorks() {
     alignments.push(netMove);
   });
   alignments.pop();
-  const roundToNearestHalf = (num) => Math.round(num * 2) / 2;
-  let bestDeduction = 0;
-  let minTotalAbsError = Infinity;
-  let minTotalDifference = Infinity;
-  let bestAdjustments = [];
-  const roundToPrecision = (num, precision = 10) => {
-      return Math.round(num * Math.pow(10, precision)) / Math.pow(10, precision);
-  };
-  const tolerance = 1e-6;
-  for (let i = 0; i < alignments.length; i++) {
-      const deduction = alignments[i];
-      let currentAdjustments = alignments.map(a => a - deduction);
-      let appliedAdjustments = currentAdjustments.map(adj => roundToNearestHalf(adj));
-      appliedAdjustments[i] = 0;
-      const errors = currentAdjustments.map((adj, idx) => adj - appliedAdjustments[idx]);
-      let totalAbsError = errors.reduce((sum, error) => sum + Math.abs(error), 0);
-      let totalDifference = errors.reduce((sum, error) => sum + error, 0);
-      totalAbsError = roundToPrecision(totalAbsError, 6);
-      totalDifference = roundToPrecision(Math.abs(totalDifference), 6);
-      if (totalAbsError < minTotalAbsError ||
-          (roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && totalDifference < minTotalDifference) ||
-          (roundToPrecision(totalAbsError, 6) === roundToPrecision(minTotalAbsError, 6) && roundToPrecision(totalDifference, 6) === roundToPrecision(minTotalDifference, 6) && deduction < bestDeduction)) {
-          minTotalAbsError = totalAbsError;
-          minTotalDifference = totalDifference;
-          bestDeduction = deduction;
-          bestAdjustments = appliedAdjustments;
-      }
-      /*console.log(`Deduct ${i + 1}:`);
-      console.log("indice required_adjustment deduct applied_adj error");
-      currentAdjustments.forEach((adj, idx) => {
-          console.log(`${idx + 1}\t${alignments[idx].toFixed(2)}\t${adj.toFixed(2)}\t${appliedAdjustments[idx].toFixed(2)}\t${errors[idx].toFixed(2)}`);
-      });
-      console.log(`Total Absolute Error: ${totalAbsError.toFixed(2)}`);
-      console.log(`Total Difference: ${totalDifference.toFixed(2)}\n`);*/
-  }
-  //console.log(bestDeduction, bestAdjustments, minTotalAbsError, minTotalDifference);
+  const { bestDeduction, bestAdjustments } = findBestLevelDeduction(alignments);
   for (let i = 1; i <= bestAdjustments.length; i++) {
       state.customLevel[i] = bestAdjustments[i - 1];
       const offsetValue = bestAdjustments[i - 1] - alignments[i - 1] - volDelta;
